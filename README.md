@@ -9,6 +9,24 @@
 
 ![总览](tools/d-overview.png)
 
+## 下载
+
+从 [Releases](https://github.com/Lumidouces/qqa-assistant/releases) 取最新 APK：
+
+| 文件 | 架构 | 说明 |
+|---|---|---|
+| `QQA-Assistant-1.1.0-arm64.apk` | arm64-v8a | 绝大多数真机（2017 年后的手机） |
+| `SHA256SUMS.txt` | — | 校验用 |
+
+```bash
+adb install -r QQA-Assistant-1.1.0-arm64.apk
+# 或直接把 APK 传到手机点安装（需允许「安装未知来源应用」）
+```
+
+**签名**：release 版用项目密钥签名（`CN=QQA Assistant`），SHA-256 指纹
+`50F6EEB6BEB33AC97E86FEE3FB2746668498D8E895D87097C906EED76BAFE97B`。
+装过 v1.0.0 的机器因签名不同需先卸载。
+
 ## 这是什么
 
 一个看 QQA（QQ Agent）控制台的手机端。8 个 HTTP 端点、5 个页面，全部只读 + 一个暂停开关。
