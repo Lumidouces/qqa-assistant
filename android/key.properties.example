@@ -1,0 +1,6 @@
+# Copy to android/key.properties and fill in your own values.
+# This file is git-ignored; never commit real credentials.
+storeFile=app/my-release.jks
+storePassword=CHANGE_ME
+keyAlias=qqa
+keyPassword=CHANGE_ME

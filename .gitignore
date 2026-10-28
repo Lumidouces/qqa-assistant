@@ -1,0 +1,59 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.iml
+.idea/
+.vscode/
+
+# Android
+android/.gradle/
+android/local.properties
+android/app/build/
+android/.kotlin/
+android/key.properties
+*.jks
+*.keystore
+!android/app/src/main/res/**/*.png
+
+# Rust
+rust/target/
+rust/Cargo.lock.bak
+target/
+
+# 本地产物
+dist/
+.tmp/
+*.apk
+*.aab
+
+# 日志与抓包
+*.log
+tools/*.log
+tools/*.json
+tools/*.xml
+tools/*v.png
+tools/f*.png
+tools/g*.png
+tools/r*.png
+tools/u*.xml
+tools/w*.png
+tools/tab-*.png
+tools/run-*.png
+tools/v*.png
+tools/contact-sheet.png
+tools/real-contact-sheet.png
+!tools/d-*.png
+!tools/mock-qqa.mjs
+!tools/build-rust.sh
+
+# 系统
+.DS_Store
+Thumbs.db
+
+# Prebuilt Rust artifacts (run tools/build-rust.sh)
+android/app/src/main/jniLibs/
