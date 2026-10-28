@@ -4,33 +4,30 @@
 界面按深色 OLED + 绿色强调的视觉稿重做，底层换成 Rust 核心 + Flutter UI。
 
 - 包名：`cn.local.qqa.qqa_assistant`（与原版一致，可覆盖安装需先卸载，签名不同）
-- 版本：1.1.0
-- 产物：`flutter build apk --release --target-platform android-arm64`（约 20 MB，arm64-v8a）
+- 版本：1.2.0
+- 产物：`dist/QQA-Assistant-RustFlutter-arm64-v1.2.0.apk`（19.8 MB，arm64-v8a）
 
-![总览](tools/d-overview.png)
+### 1.2.0 变更（UI 重构：玻璃拟态）
 
-## 下载
+按 `Lumidouces/SleepDown-Schedule` 的视觉语言整体重做，交互与网络层不变：
 
-从 [Releases](https://github.com/Lumidouces/qqa-assistant/releases) 取最新 APK：
+- 新增 `lib/design/` 设计层：`tokens.dart`（色阶/间距/圆角/字号）、`glass.dart`（GlassPanel / GlassChrome / GlassDock / GlassScope）、`theme.dart`。
+- 五页全部重写：总览改数据卡 + 环形用量，过程改时间线会话卡，存档改聊天气泡，操作改分组动作卡，设置改滑块式参数。
+- 支持浅/深两套色阶，跟随系统；底部 Dock 用模糊玻璃 + 选中态高亮。
+- 路由仍是 `IndexedStack`，切页不重建，滚动位置保留。
 
-| 文件 | 架构 | 说明 |
+### 1.1.0 变更（对接真实控制台）
+
+1.0.0 只跑过自写的 mock，字段名与真实 `/api/*` 有出入，1.1.0 按真实响应全部改掉：
+
+| 位置 | 真实形状 | 处理 |
 |---|---|---|
-| `QQA-Assistant-1.1.0-arm64.apk` | arm64-v8a | 绝大多数真机（2017 年后的手机） |
-| `SHA256SUMS.txt` | — | 校验用 |
-
-```bash
-adb install -r QQA-Assistant-1.1.0-arm64.apk
-# 或直接把 APK 传到手机点安装（需允许「安装未知来源应用」）
-```
-
-**签名**：release 版用项目密钥签名（`CN=QQA Assistant`），SHA-256 指纹
-`50F6EEB6BEB33AC97E86FEE3FB2746668498D8E895D87097C906EED76BAFE97B`。
-装过 v1.0.0 的机器因签名不同需先卸载。
-
-## 这是什么
-
-一个看 QQA（QQ Agent）控制台的手机端。8 个 HTTP 端点、5 个页面，全部只读 + 一个暂停开关。
-没有账号体系，没有云端，地址和 token 都只存在本机 `SharedPreferences` 里。
+| 会话列表 | 无 `sentCount`；`usage.calls` 是**模型调用次数**（每条 ≥1） | 「已回复」改用 `status == 'done'` 计数，不再用 `sentCount > 0`（否则永远是 50/50） |
+| 会话详情 | `sent[]` 恒为空，对话在 `messages[]` 里 | 有 `messages` 就渲染，`sent` 有内容才显示 |
+| 消息条目 | 两种形状：`{role, content}` 与 `{toolCall:{name,args,result}}` | 两种都渲染；工具调用单独成卡，`isError` 标红 |
+| 触发内容 | 列表用 `trigger` 字符串，详情用 `triggerSummary` / `triggerText` | 三选一兜底 |
+| 群消息 | 无 `role`，但有 `senderName` + 毫秒 `at` | 气泡上方显示发言人，右下角显示 `HH:mm` |
+| 状态 | `onebot.self.nickname`、`usage.runs`、`cost` | 状态卡多一枚昵称 chip；花费按真实 `cost` 显示 |
 
 ## 和原版的关系
 
@@ -52,29 +49,11 @@ adb install -r QQA-Assistant-1.1.0-arm64.apk
 | 请求 | `HttpsURLConnection` | `dart:io HttpClient` |
 | 设置 | SharedPreferences 散落 key | `AppStore` 统一封装，schema 化 |
 
-## 1.1.0 变更（对接真实控制台）
-
-1.0.0 只跑过自写的 mock，字段名与真实 `/api/*` 有出入，1.1.0 按真实响应全部改掉：
-
-| 位置 | 真实形状 | 处理 |
-|---|---|---|
-| 会话列表 | 无 `sentCount`；`usage.calls` 是**模型调用次数**（每条 ≥1） | 「已回复」改用 `status == 'done'` 计数，不再用 `sentCount > 0`（否则永远是 50/50） |
-| 会话详情 | `sent[]` 恒为空，对话在 `messages[]` 里 | 有 `messages` 就渲染，`sent` 有内容才显示 |
-| 消息条目 | 两种形状：`{role, content}` 与 `{toolCall:{name,args,result}}` | 两种都渲染；工具调用单独成卡，`isError` 标红 |
-| 触发内容 | 列表用 `trigger` 字符串，详情用 `triggerSummary` / `triggerText` | 三选一兜底 |
-| 群消息 | 无 `role`，但有 `senderName` + 毫秒 `at` | 气泡上方显示发言人，右下角显示 `HH:mm` |
-| 状态 | `onebot.self.nickname`、`usage.runs`、`cost` | 状态卡多一枚昵称 chip；花费按真实 `cost` 显示 |
-
-所有字段兼容逻辑集中在 `lib/core/models.dart` 一处（`fromJson` 里同时吃真实与 mock 两种形状），
-其余 UI 层不写兜底。
-
 ## 构建
 
-需要：Flutter 3.35.x、Android SDK 35 + NDK 27、Rust（x86_64-pc-windows-gnu host）。
-
 ```bash
-# 国内拉 engine 必须设，否则只有 40KB/s
-export FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn
+# 需要：Flutter 3.35.x、Android SDK 35 + NDK 27、Rust（x86_64-pc-windows-gnu host）
+export FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn   # 必须，否则 engine jar 只有 40KB/s
 
 # 1. Rust 核心 → .so
 bash tools/build-rust.sh          # 产物进 android/app/src/main/jniLibs/{arm64-v8a,x86_64}
@@ -85,53 +64,35 @@ flutter build apk --debug   --target-platform android-x64     # 模拟器
 ```
 
 `android/app/build.gradle.kts` 里的 `resolvedAbi` 会把 `-Ptarget-platform` 映射成
-`abiFilters`，**不要**只传 `--target-platform` 就以为打进去了 —— Flutter 不设
+`abiFilters`，**不要**只传 `--target-platform` 就以为打进去了——Flutter 不设
 `targetAbi`，不映射的话 APK 里会缺 `libflutter.so`，装上就闪退。
-
-### 签名
-
-`android/key.properties` 已被 git 忽略。复制示例文件填入自己的 keystore：
-
-```bash
-cp android/key.properties.example android/key.properties
-# 没有 keystore 就先生成一个：
-keytool -genkeypair -v -keystore android/app/my-release.jks \
-        -alias qqa -keyalg RSA -keysize 2048 -validity 10000
-```
-
-文件缺失时 release 构建会回退到 debug 签名，本地自测仍可 `flutter build apk --release`。
 
 ## 本地跑（模拟器 + mock 服务）
 
 ```bash
-node tools/mock-qqa.mjs                                        # 127.0.0.1:8788
-cloudflared tunnel --url http://127.0.0.1:8788 --no-autoupdate # 拿 https 地址（App 只收 https）
-adb install -r build/app/outputs/flutter-apk/app-debug.apk
-adb shell am start -n cn.local.qqa.qqa_assistant/.MainActivity
+node tools/mock-qqa.mjs                                    # 127.0.0.1:8788
+bin/cf.exe tunnel --url http://127.0.0.1:8788 --no-autoupdate  # 拿 https 地址（App 只收 https）
+adb install -r dist/...apk && adb shell am start -n cn.local.qqa.qqa_assistant/.MainActivity
 ```
 
 App 只接受 `https:` 地址，所以本机 mock 必须经隧道或自签证书，不能直连 `http://127.0.0.1:8788`。
 
 ## 已验证
 
-**1.1.0 对真实控制台**（自建服务器上跑着的 QQA，经 cloudflared 隧道），
-Android 15 API 35 x86_64 模拟器实测：总览显示真实机器人昵称、模型名、调用次数、
-已回复数、tokens、花费、缓存命中率；消息存档列出 13 个真实群 / 私聊会话（带最后一句预览与
-消息数）；会话详情显示轮次/工具/模型/tokens 徽章、触发内容与模型过程（含工具调用报错原文）。
+**1.1.0 对真实控制台**（服务器 `47.108.210.180` 上跑着的 QQA，经 cloudflared 隧道
+`https://gibraltar-shakira-faced-owen.trycloudflare.com`），Android 15 API 35 x86_64 模拟器实测：
 
-**1.0.0 对 mock**（`tools/mock-qqa.mjs`）：
+- `tools/g2.png` 总览：真实机器人 `哦鲸鲸`、模型 `mimo-v2.6-flash`、52 次调用、23 条已回复、
+  2287.9k tokens、花费 ¥0.59、缓存命中 77%
+- `tools/g3.png` 消息存档：13 个真实群 / 私聊会话，带最后一句预览与消息数
+- `tools/g6.png` 会话详情：轮次/工具/模型/tokens 徽章 + 触发内容 + 模型过程（含 `finish` 工具调用
+  报错原文）
+- `tools/g4.png` 操作页、`tools/g5.png` 设置页（`qqa_core 0.1.0` 已加载）
 
-| 页面 | 截图 |
-|---|---|
-| 总览 | `tools/d-overview.png` |
-| 日志 | `tools/d-logs.png` |
-| 会话详情 | `tools/d-detail.png` |
-| 消息存档 | `tools/d-chat.png` |
-| 事件 | `tools/d-events.png` |
-| 操作 | `tools/d-tools.png` |
-| 设置 | `tools/d-settings.png` |
-| 暂停态 | `tools/d-paused.png` |
+拼图：`tools/real-contact-sheet.png`
 
+**1.0.0 对 mock**（`tools/mock-qqa.mjs`）：`d-overview.png` / `d-logs.png` / `d-detail.png` /
+`d-events.png` / `d-chat.png` / `d-tools.png` / `d-paused.png` / `d-settings.png`。
 `pause` 真打接口验证：点「暂停」后 `GET /api/status` 返回 `paused: true`，恢复后 `false`。
 
 ## 实测踩到的坑
@@ -144,20 +105,10 @@ Android 15 API 35 x86_64 模拟器实测：总览显示真实机器人昵称、�
    `adb uninstall cn.local.qqa.qqa_assistant`。
 4. **预置账号用 `run-as`**。模拟器上想跳过手输地址，直接把 `FlutterSharedPreferences.xml`
    push 进 `shared_prefs/`（`adb shell run-as cn.local.qqa.qqa_assistant cp ...`）。
-5. **NDK clang 在 Windows 上是 `.cmd`**。NDK 目录里同时有 `aarch64-linux-android24-clang`
-   （POSIX 脚本）和 `.cmd` 包装器，前者不是有效 Win32 可执行文件。`build-rust.sh` 在
-   Windows 上优先找 `.cmd`/`.exe`，否则 cargo 报 `os error 193 / not a valid Win32 application`。
-6. **JDK 25 打不了包**。Gradle 8.12 在 JDK 25 上直接 `BUILD FAILED`，错误信息只有一行
-   `25.0.3`。用 JDK 21：`export JAVA_HOME="/c/Program Files/Java/jdk-21.0.10"`。
 
 ## 测试
 
 ```
-flutter analyze        → No issues found
-flutter test           → 7 passed
-cd rust && cargo test  → 10 passed
+flutter analyze   → No issues found
+flutter test      → 7 passed（Rust 侧 cargo test 8 passed）
 ```
-
-## 许可
-
-MIT，见 [LICENSE](LICENSE)。原版 `QQA-Assistant-Public-1.0.4` 的契约与行为归原作者。

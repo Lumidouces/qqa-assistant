@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../core/ffi.dart';
 import '../../state/app_state.dart';
-import '../../theme.dart';
 import '../widgets.dart';
 import 'connect_screen.dart';
 
@@ -14,21 +13,29 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ramp = GlassScope.rampOf(context);
     final store = state.store;
+
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 26),
+      padding: const EdgeInsets.fromLTRB(
+          GlassGap.pageH, 16, GlassGap.pageH, GlassGap.dockInset),
       children: [
-        const SectionHeader(title: '当前连接'),
-        Container(
-          padding: const EdgeInsets.all(15),
-          decoration: QqaDecor.card(),
+        const GlassSectionHeader(title: '当前连接'),
+        GlassPanel(
+          radius: GlassRadius.panel,
+          padding: const EdgeInsets.fromLTRB(16, 15, 16, 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(state.account.label, style: QqaText.title),
-              const SizedBox(height: 4),
-              Text(state.account.origin, style: QqaText.key, maxLines: 1),
-              const SizedBox(height: 12),
+              Text(state.account.label,
+                  style: GlassText.body.copyWith(
+                      color: ramp.content, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 5),
+              Text(state.account.origin,
+                  style: GlassText.mono.copyWith(color: ramp.contentFaint),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis),
+              const SizedBox(height: 14),
               Row(
                 children: [
                   Expanded(
@@ -56,8 +63,8 @@ class SettingsScreen extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 18),
-        const SectionHeader(title: '刷新'),
+        const SizedBox(height: 20),
+        const GlassSectionHeader(title: '刷新', subtitle: '多久问一次电脑'),
         _SliderRow(
           label: '自动刷新间隔',
           value: '${store.refreshSeconds} 秒',
@@ -85,8 +92,8 @@ class SettingsScreen extends StatelessWidget {
           divisions: 28,
           onChanged: (value) => store.setMessageLimit(value.round()),
         ),
-        const SizedBox(height: 18),
-        const SectionHeader(title: '显示'),
+        const SizedBox(height: 20),
+        const GlassSectionHeader(title: '显示'),
         _SliderRow(
           label: '字体大小',
           value: '${store.fontPercent}%',
@@ -96,17 +103,19 @@ class SettingsScreen extends StatelessWidget {
           divisions: 15,
           onChanged: (value) => state.setFontPercent(value.round()),
         ),
-        const SizedBox(height: 18),
-        const SectionHeader(title: '核心'),
-        Container(
-          padding: const EdgeInsets.all(15),
-          decoration: QqaDecor.card(),
+        const SizedBox(height: 20),
+        const GlassSectionHeader(title: '核心'),
+        GlassPanel(
+          radius: GlassRadius.chip,
+          padding: const EdgeInsets.fromLTRB(15, 14, 15, 14),
           child: Row(
             children: [
-              const Icon(Icons.memory_rounded, size: 18, color: QqaColors.accent),
-              const SizedBox(width: 10),
+              Icon(Icons.memory_rounded, size: 18, color: ramp.accent),
+              const SizedBox(width: 11),
               Expanded(
-                child: Text(coreStatus(), style: QqaText.muted),
+                child: Text(coreStatus(),
+                    style:
+                        GlassText.caption.copyWith(color: ramp.contentMuted)),
               ),
             ],
           ),
@@ -116,56 +125,43 @@ class SettingsScreen extends StatelessWidget {
   }
 
   Future<void> _showSlots(BuildContext context) async {
-    await showModalBottomSheet<void>(
+    final ramp = GlassScope.rampOf(context);
+    await showGlassSheet<void>(
       context: context,
-      backgroundColor: QqaColors.surface,
-      builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 16, 18, 22),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('账号槽位', style: QqaText.title),
-              const SizedBox(height: 14),
-              for (var slot = 0; slot < 2; slot++)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 9),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(14),
-                    onTap: () {
-                      Navigator.of(sheetContext).pop();
-                      state.switchAccount(slot);
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: slot == state.store.activeSlot
-                            ? QqaColors.accent.withValues(alpha: 0.1)
-                            : QqaColors.surfaceAlt,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                            color: slot == state.store.activeSlot
-                                ? QqaColors.accent
-                                : QqaColors.line),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(state.store.accounts[slot].label,
-                                style: QqaText.body),
-                          ),
-                          if (slot == state.store.activeSlot)
-                            const Icon(Icons.check_circle_rounded,
-                                size: 18, color: QqaColors.accent),
-                        ],
-                      ),
+      builder: (sheetContext) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('账号槽位',
+              style: GlassText.title.copyWith(color: ramp.content)),
+          const SizedBox(height: 16),
+          for (var slot = 0; slot < 2; slot++)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 9),
+              child: GlassPanel(
+                radius: GlassRadius.chip,
+                padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
+                tint: slot == state.store.activeSlot
+                    ? ramp.panelTint + 0.08
+                    : ramp.panelTint - 0.05,
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  state.switchAccount(slot);
+                },
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(state.store.accounts[slot].label,
+                          style: GlassText.body.copyWith(color: ramp.content)),
                     ),
-                  ),
+                    if (slot == state.store.activeSlot)
+                      Icon(Icons.check_circle_rounded,
+                          size: 18, color: ramp.accent),
+                  ],
                 ),
-            ],
-          ),
-        ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -192,36 +188,42 @@ class _SliderRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 9),
-      padding: const EdgeInsets.fromLTRB(14, 10, 10, 8),
-      decoration: QqaDecor.card(radius: 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(child: Text(label, style: QqaText.body)),
-              Text(value, style: QqaText.muted),
-            ],
-          ),
-          SliderTheme(
-            data: SliderTheme.of(context).copyWith(
-              activeTrackColor: QqaColors.accent,
-              inactiveTrackColor: QqaColors.line,
-              thumbColor: QqaColors.accent,
-              overlayColor: QqaColors.accent.withValues(alpha: 0.12),
-              trackHeight: 3,
+    final ramp = GlassScope.rampOf(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 9),
+      child: GlassPanel(
+        radius: GlassRadius.chip,
+        padding: const EdgeInsets.fromLTRB(15, 12, 15, 6),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                    child: Text(label,
+                        style: GlassText.body.copyWith(color: ramp.content))),
+                Text(value,
+                    style: GlassText.mono.copyWith(color: ramp.contentFaint)),
+              ],
             ),
-            child: Slider(
-              value: current.clamp(min, max),
-              min: min,
-              max: max,
-              divisions: divisions,
-              onChanged: onChanged,
+            SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                activeTrackColor: ramp.accent,
+                inactiveTrackColor: ramp.hairline,
+                thumbColor: ramp.accent,
+                overlayColor: ramp.accent.withValues(alpha: 0.12),
+                trackHeight: 3,
+              ),
+              child: Slider(
+                value: current.clamp(min, max),
+                min: min,
+                max: max,
+                divisions: divisions,
+                onChanged: onChanged,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

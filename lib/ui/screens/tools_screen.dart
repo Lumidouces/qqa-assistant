@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../state/app_state.dart';
-import '../../theme.dart';
 import '../widgets.dart';
 
 /// 操作 · 暂停/恢复自动回复，以及刷新、切换账号、断开。
@@ -36,14 +35,18 @@ class _ToolsScreenState extends State<ToolsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final ramp = GlassScope.rampOf(context);
     final paused = state.status.paused;
+
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 26),
+      padding: const EdgeInsets.fromLTRB(
+          GlassGap.pageH, 16, GlassGap.pageH, GlassGap.dockInset),
       children: [
-        const SectionHeader(title: '自动回复'),
-        Container(
-          padding: const EdgeInsets.all(18),
-          decoration: QqaDecor.card(),
+        const GlassSectionHeader(title: '自动回复', subtitle: '机器人的总开关'),
+        GlassPanel(
+          radius: GlassRadius.panel,
+          padding: const EdgeInsets.fromLTRB(17, 16, 17, 17),
+          tint: ramp.panelTint + 0.04,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -51,19 +54,19 @@ class _ToolsScreenState extends State<ToolsScreen> {
                 children: [
                   StatusDot(
                     text: paused ? '已暂停' : '运行中',
-                    color: paused ? QqaColors.warn : QqaColors.accent,
+                    color: paused ? GlassStatus.warn : ramp.accent,
                     fontSize: 13,
                   ),
                   const Spacer(),
-                  Text(state.account.label, style: QqaText.key),
+                  GlassChip(text: state.account.label, dense: true),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 11),
               Text(
                 paused
                     ? '暂停后机器人仍在线，但不会自动回复任何消息。'
                     : '机器人会按规则自动回复电脑上收到的消息。',
-                style: QqaText.muted,
+                style: GlassText.caption.copyWith(color: ramp.contentMuted),
               ),
               const SizedBox(height: 16),
               PrimaryButton(
@@ -76,8 +79,8 @@ class _ToolsScreenState extends State<ToolsScreen> {
             ],
           ),
         ),
-        const SizedBox(height: 18),
-        const SectionHeader(title: '连接'),
+        const SizedBox(height: 20),
+        const GlassSectionHeader(title: '连接'),
         _ActionRow(
           icon: Icons.refresh_rounded,
           title: '立即刷新',
@@ -97,20 +100,26 @@ class _ToolsScreenState extends State<ToolsScreen> {
           danger: true,
           onTap: () => _run(state.disconnectActive),
         ),
-        const SizedBox(height: 18),
-        const SectionHeader(title: '关于'),
-        Container(
-          padding: const EdgeInsets.all(15),
-          decoration: QqaDecor.card(),
+        const SizedBox(height: 20),
+        const GlassSectionHeader(title: '关于'),
+        GlassPanel(
+          radius: GlassRadius.panel,
+          padding: const EdgeInsets.fromLTRB(16, 15, 16, 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('QQA 助手 · Rust + Flutter 重写版', style: QqaText.body),
-              const SizedBox(height: 6),
-              Text('地址 ${state.account.origin}', style: QqaText.key),
-              const SizedBox(height: 3),
-              Text('刷新间隔 ${state.refreshSeconds} 秒 · 会话 ${state.store.sessionLimit} 条',
-                  style: QqaText.key),
+              Text('QQA 助手 · Rust + Flutter 重写版',
+                  style: GlassText.body.copyWith(
+                      color: ramp.content, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
+              Text('地址 ${state.account.origin}',
+                  style: GlassText.mono.copyWith(color: ramp.contentFaint),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis),
+              const SizedBox(height: 4),
+              Text(
+                  '刷新间隔 ${state.refreshSeconds} 秒 · 会话 ${state.store.sessionLimit} 条',
+                  style: GlassText.mono.copyWith(color: ramp.contentFaint)),
             ],
           ),
         ),
@@ -119,72 +128,61 @@ class _ToolsScreenState extends State<ToolsScreen> {
   }
 
   Future<void> _showSwitchSheet(BuildContext context) async {
+    final ramp = GlassScope.rampOf(context);
     final store = state.store;
-    await showModalBottomSheet<void>(
+    await showGlassSheet<void>(
       context: context,
-      backgroundColor: QqaColors.surface,
-      builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 16, 18, 22),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('选择账号', style: QqaText.title),
-              const SizedBox(height: 14),
-              for (var slot = 0; slot < 2; slot++)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 9),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(14),
-                    onTap: () {
-                      Navigator.of(sheetContext).pop();
-                      _run(() => state.switchAccount(slot));
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: slot == store.activeSlot
-                            ? QqaColors.accent.withValues(alpha: 0.1)
-                            : QqaColors.surfaceAlt,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: slot == store.activeSlot
-                              ? QqaColors.accent
-                              : QqaColors.line,
-                        ),
-                      ),
-                      child: Row(
+      builder: (sheetContext) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('选择账号',
+              style: GlassText.title.copyWith(color: ramp.content)),
+          const SizedBox(height: 16),
+          for (var slot = 0; slot < 2; slot++)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 9),
+              child: GlassPanel(
+                radius: GlassRadius.chip,
+                padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
+                tint: slot == store.activeSlot
+                    ? ramp.panelTint + 0.08
+                    : ramp.panelTint - 0.05,
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _run(() => state.switchAccount(slot));
+                },
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(store.accounts[slot].label,
-                                    style: QqaText.body
-                                        .copyWith(fontWeight: FontWeight.w600)),
-                                const SizedBox(height: 3),
-                                Text(
-                                  store.accounts[slot].configured
-                                      ? store.accounts[slot].origin
-                                      : '未配置',
-                                  style: QqaText.key,
-                                  maxLines: 1,
-                                ),
-                              ],
-                            ),
+                          Text(store.accounts[slot].label,
+                              style: GlassText.body.copyWith(
+                                  color: ramp.content,
+                                  fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 3),
+                          Text(
+                            store.accounts[slot].configured
+                                ? store.accounts[slot].origin
+                                : '未配置',
+                            style: GlassText.mono
+                                .copyWith(color: ramp.contentFaint),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          if (slot == store.activeSlot)
-                            const Icon(Icons.check_circle_rounded,
-                                size: 18, color: QqaColors.accent),
                         ],
                       ),
                     ),
-                  ),
+                    if (slot == store.activeSlot)
+                      Icon(Icons.check_circle_rounded,
+                          size: 18, color: ramp.accent),
+                  ],
                 ),
-            ],
-          ),
-        ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -207,36 +205,46 @@ class _ActionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = danger ? QqaColors.danger : QqaColors.accent;
+    final ramp = GlassScope.rampOf(context);
+    final color = danger ? GlassStatus.danger : ramp.accent;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 9),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+      child: GlassPanel(
+        radius: GlassRadius.chip,
+        padding: const EdgeInsets.fromLTRB(15, 14, 13, 14),
         onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: QqaDecor.card(radius: 14),
-          child: Row(
-            children: [
-              Icon(icon, size: 19, color: color),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title,
-                        style: QqaText.body.copyWith(
-                            color: danger ? QqaColors.danger : QqaColors.text,
-                            fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 2),
-                    Text(detail, style: QqaText.muted),
-                  ],
-                ),
+        child: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.13),
+                borderRadius: BorderRadius.circular(11),
               ),
-              const Icon(Icons.chevron_right_rounded,
-                  size: 19, color: QqaColors.faint),
-            ],
-          ),
+              child: Icon(icon, size: 18, color: color),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      style: GlassText.body.copyWith(
+                          color: danger ? GlassStatus.danger : ramp.content,
+                          fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 2),
+                  Text(detail,
+                      style:
+                          GlassText.caption.copyWith(color: ramp.contentFaint)),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded,
+                size: 19, color: ramp.contentFaint),
+          ],
         ),
       ),
     );

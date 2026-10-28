@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../state/app_state.dart';
-import '../../theme.dart';
 import '../widgets.dart';
 
-/// 总览 · the hero card plus everything the mock-up shows on one screen.
+/// 总览 — status hero, the four counters, usage, and the shortcut strip.
 class OverviewScreen extends StatelessWidget {
   const OverviewScreen({
     super.key,
@@ -17,24 +16,25 @@ class OverviewScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ramp = GlassScope.rampOf(context);
     final labels = state.heroLabels();
-    final connections = labels['connectionLabel'] ?? '控制台未连接';
+    final connection = labels['connectionLabel'] ?? '控制台未连接';
     final botLabel = labels['botLabel'] ?? 'DSH 未运行';
-    final accent = labels['accent'];
-    final online = accent == 'ok';
+    final online = labels['accent'] == 'ok';
 
     return RefreshIndicator(
-      color: QqaColors.accent,
-      backgroundColor: QqaColors.surface,
+      color: ramp.accent,
+      backgroundColor: ramp.page,
       onRefresh: state.refreshAll,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 26),
+        padding: const EdgeInsets.fromLTRB(
+            GlassGap.pageH, 12, GlassGap.pageH, GlassGap.dockInset),
         children: [
-          _Header(state: state),
-          const SizedBox(height: 14),
+          _TopBar(state: state),
+          const SizedBox(height: GlassGap.md),
           HeroCard(
             title: state.account.label,
-            connectionLabel: '$connections',
+            connectionLabel: '$connection',
             online: online,
             botLabel: '$botLabel',
             botOnline: online,
@@ -42,29 +42,28 @@ class OverviewScreen extends StatelessWidget {
               Chip2(
                 text: state.account.origin.replaceFirst('https://', ''),
                 icon: Icons.link_rounded,
-                color: Colors.white.withValues(alpha: 0.85),
               ),
               if (state.status.botNickname.isNotEmpty)
                 Chip2(
                   text: state.status.botNickname,
                   icon: Icons.smart_toy_rounded,
-                  color: Colors.white.withValues(alpha: 0.85),
                 ),
               if (state.status.model.isNotEmpty)
                 Chip2(
                   text: state.status.model,
                   icon: Icons.memory_rounded,
-                  color: QqaColors.info,
+                  color: ramp.accentDeep,
                 ),
             ],
-            footnote: '最近更新 ${relativeTime(state.lastUpdated)}',
+            footnote: '最近更新 ${relativeTime(state.lastUpdated)} · '
+                '每 ${state.refreshSeconds} 秒轮询',
             onRefresh: state.refreshStatus,
           ),
           if (state.statusError != null) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: GlassGap.sm),
             _ErrorBar(message: state.statusError!),
           ],
-          const SizedBox(height: 12),
+          const SizedBox(height: GlassGap.sm),
           MetricCard(children: [
             Tile(
               label: '已收消息',
@@ -75,7 +74,7 @@ class OverviewScreen extends StatelessWidget {
               label: '已回复',
               value: state.status.paused ? '暂停' : '${state.repliedCount}',
               hint: '${state.sessions.length} 条会话',
-              valueColor: QqaColors.accent,
+              valueColor: ramp.accent,
             ),
             Tile(
               label: '未回复',
@@ -88,9 +87,9 @@ class OverviewScreen extends StatelessWidget {
               hint: state.runningCount > 0 ? '正在处理' : '发送正常',
             ),
           ]),
-          const SizedBox(height: 12),
+          const SizedBox(height: GlassGap.sm),
           _UsageCard(state: state),
-          const SizedBox(height: 12),
+          const SizedBox(height: GlassGap.sm),
           _QuickStrip(onNavigate: onNavigate),
         ],
       ),
@@ -98,72 +97,84 @@ class OverviewScreen extends StatelessWidget {
   }
 }
 
-class _Header extends StatelessWidget {
-  const _Header({required this.state});
+/// Compact header above the hero: app name, connection state, two icon actions.
+class _TopBar extends StatelessWidget {
+  const _TopBar({required this.state});
 
   final AppState state;
 
   @override
   Widget build(BuildContext context) {
+    final ramp = GlassScope.rampOf(context);
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 7,
-                    height: 7,
-                    decoration: BoxDecoration(
-                      color: state.status.connected
-                          ? QqaColors.accent
-                          : QqaColors.faint,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(
-                      state.account.label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: QqaColors.text,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 3),
-              Padding(
-                padding: const EdgeInsets.only(left: 15),
-                child: Text(
-                  '${state.account.origin} · ${state.refreshSeconds} 秒刷新',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: QqaText.key,
-                ),
+              Text('QQA 助手',
+                  style: GlassText.display
+                      .copyWith(color: ramp.content, fontSize: 27)),
+              const SizedBox(height: 4),
+              Text(
+                state.account.origin,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GlassText.mono.copyWith(color: ramp.contentFaint),
               ),
             ],
           ),
         ),
-        IconButton(
-          onPressed: state.refreshAll,
-          icon: const Icon(Icons.refresh_rounded, size: 21),
-          color: QqaColors.muted,
-        ),
-        IconButton(
-          onPressed: state.disconnectActive,
-          icon: const Icon(Icons.logout_rounded, size: 21),
-          color: QqaColors.muted,
-          tooltip: '断开连接',
+        const SizedBox(width: 10),
+        GlassChrome(
+          radius: GlassRadius.pill,
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _IconAction(
+                icon: Icons.refresh_rounded,
+                tooltip: '刷新',
+                onTap: state.refreshAll,
+              ),
+              _IconAction(
+                icon: Icons.logout_rounded,
+                tooltip: '断开连接',
+                onTap: state.disconnectActive,
+              ),
+            ],
+          ),
         ),
       ],
+    );
+  }
+}
+
+class _IconAction extends StatelessWidget {
+  const _IconAction({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ramp = GlassScope.rampOf(context);
+    return Tooltip(
+      message: tooltip,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Icon(icon, size: 19, color: ramp.contentMuted),
+        ),
+      ),
     );
   }
 }
@@ -175,36 +186,40 @@ class _UsageCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ramp = GlassScope.rampOf(context);
     final labels = state.heroLabels();
     final now = DateTime.now();
     final date = '${now.year}-${now.month.toString().padLeft(2, '0')}-'
         '${now.day.toString().padLeft(2, '0')}';
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-      decoration: QqaDecor.card(),
+
+    return GlassPanel(
+      radius: GlassRadius.panel,
+      padding: const EdgeInsets.fromLTRB(17, 15, 17, 17),
       child: Column(
         children: [
           Row(
             children: [
               Container(
-                width: 26,
-                height: 26,
+                width: 27,
+                height: 27,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
+                  color: ramp.accent.withValues(alpha: 0.12),
                   border: Border.all(
-                      color: QqaColors.accent.withValues(alpha: 0.55), width: 2),
+                      color: ramp.accent.withValues(alpha: 0.4)),
                 ),
-                child: const Icon(Icons.trending_up_rounded,
-                    size: 13, color: QqaColors.accent),
+                child: Icon(Icons.trending_up_rounded,
+                    size: 14, color: ramp.accent),
               ),
               const SizedBox(width: 10),
-              const Text('用量', style: QqaText.title),
+              Text('用量', style: GlassText.title.copyWith(color: ramp.content)),
               const Spacer(),
-              Text(date, style: QqaText.key),
+              Text(date,
+                  style: GlassText.mono.copyWith(color: ramp.contentFaint)),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: GlassGap.md),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -212,7 +227,8 @@ class _UsageCard extends StatelessWidget {
                 child: Tile(
                   label: '总 tokens',
                   value: '${labels['totalTokens'] ?? '—'}',
-                  hint: '入 ${state.status.promptTokens} · 出 ${state.status.completionTokens}',
+                  hint:
+                      '入 ${state.status.promptTokens} · 出 ${state.status.completionTokens}',
                 ),
               ),
               const SizedBox(width: 12),
@@ -225,7 +241,7 @@ class _UsageCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 20),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -235,10 +251,8 @@ class _UsageCard extends StatelessWidget {
                   value: state.status.cost > 0
                       ? '¥${state.status.cost.toStringAsFixed(2)}'
                       : '—',
-                  hint: state.status.model.isEmpty
-                      ? '未上报'
-                      : state.status.model,
-                  valueColor: QqaColors.accent,
+                  hint: state.status.model.isEmpty ? '未上报' : state.status.model,
+                  valueColor: ramp.accent,
                 ),
               ),
               const SizedBox(width: 12),
@@ -257,7 +271,7 @@ class _UsageCard extends StatelessWidget {
   }
 }
 
-/// Four shortcut rows that jump to the other tabs.
+/// Shortcut tiles that jump to the other tabs.
 class _QuickStrip extends StatelessWidget {
   const _QuickStrip({required this.onNavigate});
 
@@ -268,41 +282,72 @@ class _QuickStrip extends StatelessWidget {
     const items = <({String label, IconData icon, int tab})>[
       (label: '会话过程', icon: Icons.forum_outlined, tab: 1),
       (label: '消息存档', icon: Icons.chat_bubble_outline_rounded, tab: 2),
-      (label: '操作', icon: Icons.tune_rounded, tab: 3),
+      (label: '操作', icon: Icons.bolt_outlined, tab: 3),
       (label: '设置', icon: Icons.settings_outlined, tab: 4),
     ];
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: QqaDecor.card(),
+    return GlassPanel(
+      radius: GlassRadius.panel,
+      padding: const EdgeInsets.fromLTRB(15, 15, 15, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('常用入口', style: QqaText.title),
-          const SizedBox(height: 12),
+          GlassSectionHeader(title: '常用入口'),
           Row(
             children: [
               for (final item in items)
                 Expanded(
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(12),
+                  child: _QuickTile(
+                    label: item.label,
+                    icon: item.icon,
                     onTap: () => onNavigate(item.tab),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Column(
-                        children: [
-                          Icon(item.icon, size: 20, color: QqaColors.accent),
-                          const SizedBox(height: 7),
-                          Text(item.label,
-                              style: const TextStyle(
-                                  color: QqaColors.muted, fontSize: 11)),
-                        ],
-                      ),
-                    ),
                   ),
                 ),
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _QuickTile extends StatelessWidget {
+  const _QuickTile({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ramp = GlassScope.rampOf(context);
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Column(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: ramp.accent.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(GlassRadius.chip),
+                border: Border.all(
+                    color: ramp.accent.withValues(alpha: 0.20)),
+              ),
+              child: Icon(icon, size: 19, color: ramp.accent),
+            ),
+            const SizedBox(height: 7),
+            Text(label,
+                style: GlassText.caption.copyWith(color: ramp.contentMuted)),
+          ],
+        ),
       ),
     );
   }
@@ -315,24 +360,22 @@ class _ErrorBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const danger = Color(0xFFE5484D);
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(
-        color: QqaColors.danger.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border:
-            Border.all(color: QqaColors.danger.withValues(alpha: 0.35)),
+        color: danger.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(GlassRadius.chip),
+        border: Border.all(color: danger.withValues(alpha: 0.32)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.wifi_off_rounded,
-              size: 16, color: QqaColors.danger),
-          const SizedBox(width: 8),
+          const Icon(Icons.wifi_off_rounded, size: 16, color: danger),
+          const SizedBox(width: 9),
           Expanded(
             child: Text(message,
-                style:
-                    const TextStyle(color: QqaColors.danger, fontSize: 12)),
+                style: GlassText.caption.copyWith(color: danger)),
           ),
         ],
       ),

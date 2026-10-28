@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'core/store.dart';
+import 'design/glass.dart';
 import 'state/app_state.dart';
 import 'theme.dart';
 import 'ui/screens/connect_screen.dart';
@@ -18,7 +19,7 @@ Future<void> main() async {
   runApp(QqaApp(state: state));
 }
 
-/// Root widget: owns the [AppState] and the shell chrome.
+/// Root widget: owns the [AppState] and the glass tone.
 class QqaApp extends StatefulWidget {
   const QqaApp({super.key, required this.state});
 
@@ -32,39 +33,61 @@ class _QqaAppState extends State<QqaApp> {
   late final AppState _state = widget.state;
 
   @override
+  void initState() {
+    super.initState();
+    _state.addListener(_onStateChanged);
+  }
+
+  @override
   void dispose() {
+    _state.removeListener(_onStateChanged);
     _state.dispose();
     super.dispose();
   }
 
+  void _onStateChanged() {
+    // The tone lives in the store, so a theme flip has to rebuild from here.
+    if (mounted) setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
+    final tone = _state.store.darkMode ? GlassTone.dark : GlassTone.light;
+
     return AnimatedBuilder(
       animation: _state,
       builder: (context, _) {
-        return MaterialApp(
-          title: 'QQA 助手',
-          debugShowCheckedModeBanner: false,
-          theme: buildTheme(),
-          builder: (context, child) {
-            final media = MediaQuery.of(context);
-            return MediaQuery(
-              data: media.copyWith(
-                textScaler: TextScaler.linear(_state.store.fontPercent / 100),
-              ),
-              child: child ?? const SizedBox.shrink(),
-            );
-          },
-          home: _state.ready
-              ? Shell(state: _state)
-              : ConnectScreen(state: _state, firstRun: true),
+        return GlassScope(
+          tone: tone,
+          child: MaterialApp(
+            title: 'QQA 助手',
+            debugShowCheckedModeBanner: false,
+            theme: buildTheme(tone),
+            builder: (context, child) {
+              final media = MediaQuery.of(context);
+              return MediaQuery(
+                data: media.copyWith(
+                  textScaler: TextScaler.linear(_state.store.fontPercent / 100),
+                ),
+                child: GlassBackdrop(
+                  child: child ?? const SizedBox.shrink(),
+                ),
+              );
+            },
+            home: _state.ready
+                ? Shell(state: _state)
+                : ConnectScreen(state: _state, firstRun: true),
+          ),
         );
       },
     );
   }
 }
 
-/// Bottom-tab shell with the five sections from the mock-up.
+/// Shell: page body plus the floating glass dock.
+///
+/// Wide layouts keep the dock but pin it to the left as a rail-like column so
+/// the app still feels like the phone original.
 class Shell extends StatefulWidget {
   const Shell({super.key, required this.state});
 
@@ -78,21 +101,28 @@ class _ShellState extends State<Shell> {
   int _index = 0;
 
   static const _tabs = <({String label, IconData icon})>[
-    (label: '总览', icon: Icons.grid_view_rounded),
-    (label: '日志', icon: Icons.article_outlined),
-    (label: '事件', icon: Icons.bolt_rounded),
-    (label: '操作', icon: Icons.tune_rounded),
+    (label: '总览', icon: Icons.blur_on_rounded),
+    (label: '过程', icon: Icons.forum_rounded),
+    (label: '存档', icon: Icons.chat_bubble_rounded),
+    (label: '操作', icon: Icons.bolt_rounded),
     (label: '设置', icon: Icons.settings_rounded),
   ];
 
   AppState get state => widget.state;
 
+  void _select(int index) {
+    if (index == _index) return;
+    HapticFeedback.selectionClick();
+    setState(() => _index = index);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final wide = MediaQuery.of(context).size.width >= 720;
+    final ramp = GlassScope.rampOf(context);
+    final wide = MediaQuery.of(context).size.width >= 760;
+
     final pages = <Widget>[
-      OverviewScreen(
-          state: state, onNavigate: (index) => setState(() => _index = index)),
+      OverviewScreen(state: state, onNavigate: _select),
       LogsScreen(state: state),
       EventsScreen(state: state),
       ToolsScreen(state: state),
@@ -103,33 +133,34 @@ class _ShellState extends State<Shell> {
 
     if (wide) {
       return Scaffold(
+        backgroundColor: Colors.transparent,
         body: SafeArea(
           child: Row(
             children: [
-              NavigationRail(
-                selectedIndex: _index,
-                onDestinationSelected: (index) =>
-                    setState(() => _index = index),
-                backgroundColor: QqaColors.bg,
-                indicatorColor: QqaColors.accent.withValues(alpha: 0.16),
-                labelType: NavigationRailLabelType.all,
-                selectedIconTheme:
-                    const IconThemeData(color: QqaColors.accent, size: 22),
-                unselectedIconTheme:
-                    const IconThemeData(color: QqaColors.faint, size: 22),
-                selectedLabelTextStyle:
-                    const TextStyle(color: QqaColors.accent, fontSize: 11.5),
-                unselectedLabelTextStyle:
-                    const TextStyle(color: QqaColors.faint, fontSize: 11.5),
-                destinations: [
-                  for (final tab in _tabs)
-                    NavigationRailDestination(
-                      icon: Icon(tab.icon),
-                      label: Text(tab.label),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 14, 6, 14),
+                child: Center(
+                  child: GlassChrome(
+                    radius: GlassRadius.sheet,
+                    blur: GlassBlur.chrome,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 12),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (var i = 0; i < _tabs.length; i++)
+                          _RailItem(
+                            label: _tabs[i].label,
+                            icon: _tabs[i].icon,
+                            selected: i == _index,
+                            ramp: ramp,
+                            onTap: () => _select(i),
+                          ),
+                      ],
                     ),
-                ],
+                  ),
+                ),
               ),
-              const VerticalDivider(width: 1, color: QqaColors.line),
               Expanded(child: body),
             ],
           ),
@@ -138,81 +169,73 @@ class _ShellState extends State<Shell> {
     }
 
     return Scaffold(
-      body: SafeArea(child: body),
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: QqaColors.bg,
-          border: Border(top: BorderSide(color: QqaColors.line)),
-        ),
-        child: SafeArea(
-          top: false,
-          child: SizedBox(
-            height: 62,
-            child: Row(
-              children: [
-                for (var index = 0; index < _tabs.length; index++)
-                  Expanded(
-                    child: _TabButton(
-                      label: _tabs[index].label,
-                      icon: _tabs[index].icon,
-                      selected: index == _index,
-                      onTap: () {
-                        HapticFeedback.selectionClick();
-                        setState(() => _index = index);
-                      },
-                    ),
-                  ),
-              ],
-            ),
-          ),
+      backgroundColor: Colors.transparent,
+      extendBody: true,
+      body: SafeArea(bottom: false, child: body),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: GlassDock(
+          labels: [for (final tab in _tabs) tab.label],
+          icons: [for (final tab in _tabs) tab.icon],
+          index: _index,
+          onSelect: _select,
         ),
       ),
     );
   }
 }
 
-class _TabButton extends StatelessWidget {
-  const _TabButton({
+class _RailItem extends StatelessWidget {
+  const _RailItem({
     required this.label,
     required this.icon,
     required this.selected,
+    required this.ramp,
     required this.onTap,
   });
 
   final String label;
   final IconData icon;
   final bool selected;
+  final GlassRamp ramp;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? QqaColors.accent : QqaColors.faint;
-    return InkWell(
+    final color = selected ? ramp.accent : ramp.contentMuted;
+    return GestureDetector(
       onTap: onTap,
-      highlightColor: Colors.transparent,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: selected
-                ? BoxDecoration(
-                    color: QqaColors.accent.withValues(alpha: 0.16),
-                    borderRadius: BorderRadius.circular(999),
-                  )
-                : null,
-            child: Icon(icon, size: 21, color: color),
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: GlassMotion.base,
+        curve: GlassMotion.curve,
+        margin: const EdgeInsets.symmetric(vertical: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 11),
+        decoration: BoxDecoration(
+          color: selected
+              ? ramp.accent.withValues(alpha: 0.16)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(GlassRadius.chip),
+          border: Border.all(
+            color:
+                selected ? ramp.accent.withValues(alpha: 0.4) : Colors.transparent,
           ),
-          const SizedBox(height: 3),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 11,
-              fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 20, color: color),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              style: GlassText.caption.copyWith(
+                color: color,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

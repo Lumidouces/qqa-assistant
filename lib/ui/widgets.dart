@@ -1,52 +1,55 @@
+// App-level composites built on top of the glass primitives.
+//
+// These keep the shape the screens already talk to (`HeroCard`, `MetricCard`,
+// `Tile`, ...) but render through `design/glass.dart`, so the whole app inherits
+// the SleepDown liquid-glass material without each screen re-implementing it.
+
 import 'package:flutter/material.dart';
 
-import '../theme.dart';
+import '../design/glass.dart';
 
-/// Small rounded label such as `SSH 隧道` / `deepseek-flash`.
+export '../design/glass.dart';
+
+/// Section heading: title on the left, optional action on the right.
+class SectionHeader extends StatelessWidget {
+  const SectionHeader({
+    super.key,
+    required this.title,
+    this.subtitle,
+    this.trailing,
+  });
+
+  final String title;
+  final String? subtitle;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) =>
+      GlassSectionHeader(title: title, subtitle: subtitle, trailing: trailing);
+}
+
+/// Small translucent tag, e.g. `SSH 隧道` / `deepseek-flash`.
 class Chip2 extends StatelessWidget {
   const Chip2({
     super.key,
     required this.text,
     this.icon,
-    this.color = QqaColors.accent,
+    this.color,
     this.dense = false,
   });
 
   final String text;
   final IconData? icon;
-  final Color color;
+  final Color? color;
   final bool dense;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(
-          horizontal: dense ? 8 : 10, vertical: dense ? 4 : 6),
-      decoration: QqaDecor.pill(color: color, alpha: 0.12),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: dense ? 12 : 13, color: color),
-            const SizedBox(width: 5),
-          ],
-          Flexible(
-            child: Text(
-              text,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: color,
-                fontSize: dense ? 11 : 12,
-                fontWeight: FontWeight.w600,
-                height: 1.1,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => GlassChip(
+        text: text,
+        icon: icon,
+        color: color,
+        dense: dense,
+      );
 }
 
 /// `● 控制台已连接` style dot + label.
@@ -54,27 +57,29 @@ class StatusDot extends StatelessWidget {
   const StatusDot({
     super.key,
     required this.text,
-    this.color = QqaColors.accent,
+    this.color,
     this.fontSize = 13,
   });
 
   final String text;
-  final Color color;
+  final Color? color;
   final double fontSize;
 
   @override
   Widget build(BuildContext context) {
+    final ramp = GlassScope.rampOf(context);
+    final tint = color ?? ramp.accent;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 8,
-          height: 8,
+          width: 7.5,
+          height: 7.5,
           decoration: BoxDecoration(
-            color: color,
+            color: tint,
             shape: BoxShape.circle,
             boxShadow: [
-              BoxShadow(color: color.withValues(alpha: 0.55), blurRadius: 6),
+              BoxShadow(color: tint.withValues(alpha: 0.55), blurRadius: 7),
             ],
           ),
         ),
@@ -85,9 +90,10 @@ class StatusDot extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: color,
+              color: tint,
               fontSize: fontSize,
               fontWeight: FontWeight.w600,
+              letterSpacing: -0.1,
             ),
           ),
         ),
@@ -96,7 +102,10 @@ class StatusDot extends StatelessWidget {
   }
 }
 
-/// The big gradient hero card at the top of the overview.
+/// The large status panel at the top of the overview.
+///
+/// SleepDown's equivalent is the "today" hero: an accent-tinted glass slab with
+/// a heavy display line, a row of chips, and one quiet footnote.
 class HeroCard extends StatelessWidget {
   const HeroCard({
     super.key,
@@ -121,20 +130,13 @@ class HeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final ramp = GlassScope.rampOf(context);
+    final accent = online ? ramp.accent : const Color(0xFFE0A93B);
+
+    return GlassPanel(
+      radius: GlassRadius.panel,
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
-      decoration: BoxDecoration(
-        gradient: QqaColors.heroGradient,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: QqaColors.accent.withValues(alpha: 0.28)),
-        boxShadow: [
-          BoxShadow(
-            color: QqaColors.accent.withValues(alpha: 0.10),
-            blurRadius: 28,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
+      tint: ramp.panelTint + 0.06,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -143,64 +145,40 @@ class HeroCard extends StatelessWidget {
               Expanded(
                 child: StatusDot(
                   text: connectionLabel,
-                  color: online ? QqaColors.accent : QqaColors.warn,
-                  fontSize: 13.5,
+                  color: accent,
+                  fontSize: 13,
                 ),
               ),
               if (onRefresh != null)
-                InkWell(
+                GestureDetector(
                   onTap: onRefresh,
-                  borderRadius: BorderRadius.circular(999),
-                  child: const Padding(
-                    padding: EdgeInsets.all(4),
+                  behavior: HitTestBehavior.opaque,
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
                     child: Icon(Icons.refresh_rounded,
-                        size: 20, color: QqaColors.accent),
+                        size: 19, color: ramp.contentMuted),
                   ),
                 ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           Text(
             title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 26,
-              height: 1.1,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.6,
-            ),
+            style: GlassText.display.copyWith(color: ramp.content),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           Wrap(spacing: 8, runSpacing: 8, children: chips),
           const SizedBox(height: 10),
-          Wrap(spacing: 8, runSpacing: 8, children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
-              decoration: BoxDecoration(
-                color: (botOnline ? QqaColors.accent : QqaColors.warn)
-                    .withValues(alpha: 0.16),
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(
-                  color: (botOnline ? QqaColors.accent : QqaColors.warn)
-                      .withValues(alpha: 0.5),
-                ),
-              ),
-              child: StatusDot(
-                text: botLabel,
-                color: botOnline ? QqaColors.accent : QqaColors.warn,
-                fontSize: 12.5,
-              ),
-            ),
-          ]),
-          const SizedBox(height: 12),
+          GlassChip(
+            text: botLabel,
+            dotColor: botOnline ? ramp.accent : const Color(0xFFE0A93B),
+          ),
+          const SizedBox(height: 14),
           Text(
             footnote,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.62),
-              fontSize: 12,
-            ),
+            style: GlassText.caption.copyWith(color: ramp.contentFaint),
           ),
         ],
       ),
@@ -208,7 +186,7 @@ class HeroCard extends StatelessWidget {
   }
 }
 
-/// Card that holds a `MetricTile` grid.
+/// Card that holds a grid of [Tile]s.
 class MetricCard extends StatelessWidget {
   const MetricCard({super.key, required this.children, this.columns = 2});
 
@@ -227,23 +205,24 @@ class MetricCard extends StatelessWidget {
             Expanded(
               child: Padding(
                 padding: EdgeInsets.only(
-                    right: column == columns - 1 ? 0 : 10,
-                    bottom: index + columns < children.length ? 18 : 0),
+                  right: column == columns - 1 ? 0 : 10,
+                  bottom: index + columns < children.length ? 20 : 0,
+                ),
                 child: column < slice.length ? slice[column] : const SizedBox(),
               ),
             ),
         ],
       ));
     }
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: QqaDecor.card(),
+    return GlassPanel(
+      radius: GlassRadius.panel,
+      padding: const EdgeInsets.fromLTRB(17, 17, 17, 17),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: rows),
     );
   }
 }
 
-/// Labelled tile used inside [MetricCard].
+/// Labelled figure used inside [MetricCard].
 class Tile extends StatelessWidget {
   const Tile({
     super.key,
@@ -259,27 +238,12 @@ class Tile extends StatelessWidget {
   final Color? valueColor;
 
   @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(label, style: QqaText.muted),
-        const SizedBox(height: 6),
-        Text(
-          value,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: QqaText.metric
-              .copyWith(color: valueColor ?? QqaColors.text, fontSize: 24),
-        ),
-        if (hint != null) ...[
-          const SizedBox(height: 3),
-          Text(hint!, style: QqaText.key, maxLines: 1, overflow: TextOverflow.ellipsis),
-        ],
-      ],
-    );
-  }
+  Widget build(BuildContext context) => GlassMetric(
+        label: label,
+        value: value,
+        hint: hint,
+        valueColor: valueColor,
+      );
 }
 
 /// Hairline switch row used by the settings screen.
@@ -299,36 +263,47 @@ class SettingSwitch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
-      decoration: QqaDecor.card(radius: 14),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: QqaText.body),
-                if (subtitle != null) ...[
-                  const SizedBox(height: 3),
-                  Text(subtitle!, style: QqaText.muted),
+    final ramp = GlassScope.rampOf(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 9),
+      child: GlassPanel(
+        radius: GlassRadius.chip,
+        padding: const EdgeInsets.fromLTRB(15, 13, 9, 13),
+        tint: ramp.panelTint - 0.06,
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      style: GlassText.body.copyWith(
+                          color: ramp.content,
+                          fontWeight: FontWeight.w600)),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 3),
+                    Text(subtitle!,
+                        style: GlassText.caption
+                            .copyWith(color: ramp.contentFaint)),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            activeThumbColor: QqaColors.accent,
-          ),
-        ],
+            Switch(
+              value: value,
+              onChanged: onChanged,
+              activeThumbColor: Colors.white,
+              activeTrackColor: ramp.accent,
+              inactiveTrackColor: ramp.content.withValues(alpha: 0.12),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-/// Filled action button (mint on black).
+/// Filled capsule action.
 class PrimaryButton extends StatelessWidget {
   const PrimaryButton({
     super.key,
@@ -337,6 +312,7 @@ class PrimaryButton extends StatelessWidget {
     this.onPressed,
     this.busy = false,
     this.expand = false,
+    this.danger = false,
   });
 
   final String label;
@@ -344,53 +320,20 @@ class PrimaryButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool busy;
   final bool expand;
+  final bool danger;
 
   @override
-  Widget build(BuildContext context) {
-    final child = Row(
-      mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        if (busy)
-          const SizedBox(
-            width: 15,
-            height: 15,
-            child: CircularProgressIndicator(
-                strokeWidth: 2, color: QqaColors.bg),
-          )
-        else if (icon != null)
-          Icon(icon, size: 17, color: QqaColors.bg),
-        if (busy || icon != null) const SizedBox(width: 8),
-        Text(
-          label,
-          style: const TextStyle(
-            color: QqaColors.bg,
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
-    );
-
-    return SizedBox(
-      width: expand ? double.infinity : null,
-      child: FilledButton(
-        onPressed: busy ? null : onPressed,
-        style: FilledButton.styleFrom(
-          backgroundColor: QqaColors.accent,
-          disabledBackgroundColor: QqaColors.accent.withValues(alpha: 0.4),
-          foregroundColor: QqaColors.bg,
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14)),
-        ),
-        child: child,
-      ),
-    );
-  }
+  Widget build(BuildContext context) => GlassButton(
+        label: label,
+        icon: icon,
+        onTap: onPressed,
+        busy: busy,
+        expand: expand,
+        tone: danger ? GlassButtonTone.danger : GlassButtonTone.accent,
+      );
 }
 
-/// Ghost button (outline on black).
+/// Quiet outlined action.
 class GhostButton extends StatelessWidget {
   const GhostButton({
     super.key,
@@ -404,20 +347,12 @@ class GhostButton extends StatelessWidget {
   final VoidCallback? onPressed;
 
   @override
-  Widget build(BuildContext context) {
-    return OutlinedButton.icon(
-      onPressed: onPressed,
-      icon: icon == null ? const SizedBox.shrink() : Icon(icon, size: 17),
-      label: Text(label),
-      style: OutlinedButton.styleFrom(
-        foregroundColor: QqaColors.text,
-        side: const BorderSide(color: QqaColors.line),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => GlassButton(
+        label: label,
+        icon: icon,
+        onTap: onPressed,
+        tone: GlassButtonTone.quiet,
+      );
 }
 
 /// Empty / error placeholder used by every list.
@@ -437,23 +372,21 @@ class EmptyHint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 18),
-      decoration: QqaDecor.card(),
+    return GlassPanel(
+      radius: GlassRadius.panel,
+      padding: EdgeInsets.zero,
       child: Column(
         children: [
-          Icon(icon, size: 30, color: QqaColors.faint),
-          const SizedBox(height: 10),
-          Text(title, textAlign: TextAlign.center, style: QqaText.body),
-          if (detail != null) ...[
-            const SizedBox(height: 6),
-            Text(detail!, textAlign: TextAlign.center, style: QqaText.muted),
-          ],
-          if (onRetry != null) ...[
-            const SizedBox(height: 14),
-            GhostButton(label: '重试', icon: Icons.refresh_rounded, onPressed: onRetry),
-          ],
+          GlassEmpty(icon: icon, title: title, hint: detail),
+          if (onRetry != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 20),
+              child: GhostButton(
+                label: '重试',
+                icon: Icons.refresh_rounded,
+                onPressed: onRetry,
+              ),
+            ),
         ],
       ),
     );
@@ -469,4 +402,19 @@ String relativeTime(DateTime? at) {
   if (gap.inMinutes < 60) return '${gap.inMinutes} 分钟前';
   if (gap.inHours < 24) return '${gap.inHours} 小时前';
   return '${gap.inDays} 天前';
+}
+
+/// Clock formatter shared by the log rows: `14:32` or `10-27 14:32`.
+String stampTime(int? millis) {
+  if (millis == null || millis <= 0) return '—';
+  final at = DateTime.fromMillisecondsSinceEpoch(millis);
+  final hh = at.hour.toString().padLeft(2, '0');
+  final mm = at.minute.toString().padLeft(2, '0');
+  final now = DateTime.now();
+  final sameDay =
+      at.year == now.year && at.month == now.month && at.day == now.day;
+  if (sameDay) return '$hh:$mm';
+  final mo = at.month.toString().padLeft(2, '0');
+  final dd = at.day.toString().padLeft(2, '0');
+  return '$mo-$dd $hh:$mm';
 }

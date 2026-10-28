@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../state/app_state.dart';
-import '../../theme.dart';
 import '../widgets.dart';
 
 /// First-run / reconnect screen: type the address of the PC console.
@@ -65,43 +64,57 @@ class _ConnectScreenState extends State<ConnectScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final ramp = GlassScope.rampOf(context);
+
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 28, 20, 28),
+          padding: const EdgeInsets.fromLTRB(
+              GlassGap.pageH, 24, GlassGap.pageH, 34),
           children: [
             Row(
               children: [
                 Container(
-                  width: 40,
-                  height: 40,
+                  width: 44,
+                  height: 44,
                   decoration: BoxDecoration(
-                    gradient: QqaColors.heroGradient,
-                    borderRadius: BorderRadius.circular(12),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [ramp.accent, ramp.accentDeep],
+                    ),
+                    borderRadius: BorderRadius.circular(GlassRadius.chip),
+                    boxShadow: [
+                      BoxShadow(
+                        color: ramp.accent.withValues(alpha: 0.32),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
                   ),
                   child: const Icon(Icons.hub_rounded,
                       size: 21, color: Colors.white),
                 ),
-                const SizedBox(width: 12),
-                const Expanded(
+                const SizedBox(width: 13),
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('连接你自己的 QQA',
-                          style: TextStyle(
-                              color: QqaColors.text,
-                              fontSize: 19,
-                              fontWeight: FontWeight.w700)),
-                      SizedBox(height: 2),
+                          style: GlassText.title.copyWith(
+                              color: ramp.content, fontSize: 20)),
+                      const SizedBox(height: 3),
                       Text('手机只做显示，机器人跑在电脑上',
-                          style: QqaText.muted),
+                          style: GlassText.caption
+                              .copyWith(color: ramp.contentFaint)),
                     ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 26),
-            const SectionHeader(title: '账号槽位'),
+            const SizedBox(height: 28),
+            const GlassSectionHeader(title: '账号槽位'),
             Row(
               children: [
                 for (var slot = 0; slot < 2; slot++) ...[
@@ -116,33 +129,35 @@ class _ConnectScreenState extends State<ConnectScreen> {
                       _name.text = account.name;
                     }),
                   ),
-                  const SizedBox(width: 10),
+                  if (slot == 0) const SizedBox(width: 10),
                 ],
               ],
             ),
             const SizedBox(height: 22),
-            const SectionHeader(title: '电脑地址'),
+            const GlassSectionHeader(title: '电脑地址'),
             TextField(
               controller: _origin,
               keyboardType: TextInputType.url,
               autocorrect: false,
-              decoration: const InputDecoration(
+              style: GlassText.body.copyWith(color: ramp.content),
+              decoration: InputDecoration(
                 hintText: 'https://your-pc.tailnet.ts.net',
                 prefixIcon: Icon(Icons.link_rounded,
-                    size: 18, color: QqaColors.faint),
+                    size: 18, color: ramp.contentFaint),
               ),
             ),
-            const SizedBox(height: 8),
-            const Text('必须是 HTTPS 根地址，不要带路径、参数或 # 号。',
-                style: QqaText.key),
+            const SizedBox(height: 9),
+            Text('必须是 HTTPS 根地址，不要带路径、参数或 # 号。',
+                style: GlassText.mono.copyWith(color: ramp.contentFaint)),
             const SizedBox(height: 18),
-            const SectionHeader(title: '备注名（可选）'),
+            const GlassSectionHeader(title: '备注名（可选）'),
             TextField(
               controller: _name,
-              decoration: const InputDecoration(
+              style: GlassText.body.copyWith(color: ramp.content),
+              decoration: InputDecoration(
                 hintText: '比如 家里主机',
                 prefixIcon: Icon(Icons.badge_outlined,
-                    size: 18, color: QqaColors.faint),
+                    size: 18, color: ramp.contentFaint),
               ),
             ),
             if (_error != null) ...[
@@ -150,27 +165,27 @@ class _ConnectScreenState extends State<ConnectScreen> {
               Container(
                 padding: const EdgeInsets.all(13),
                 decoration: BoxDecoration(
-                  color: QqaColors.danger.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  color: GlassStatus.danger.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(GlassRadius.chip),
                   border: Border.all(
-                      color: QqaColors.danger.withValues(alpha: 0.4)),
+                      color: GlassStatus.danger.withValues(alpha: 0.4)),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Icon(Icons.error_outline_rounded,
-                        size: 17, color: QqaColors.danger),
+                        size: 17, color: GlassStatus.danger),
                     const SizedBox(width: 9),
                     Expanded(
                       child: Text(_error!,
-                          style: const TextStyle(
-                              color: QqaColors.danger, fontSize: 12.5)),
+                          style: GlassText.caption.copyWith(
+                              color: GlassStatus.danger)),
                     ),
                   ],
                 ),
               ),
             ],
-            const SizedBox(height: 22),
+            const SizedBox(height: 24),
             PrimaryButton(
               label: '连接并验证',
               icon: Icons.login_rounded,
@@ -178,27 +193,29 @@ class _ConnectScreenState extends State<ConnectScreen> {
               expand: true,
               onPressed: _connect,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             if (!widget.firstRun)
               GhostButton(
                 label: '取消',
                 onPressed: () => Navigator.of(context).maybePop(),
               ),
-            const SizedBox(height: 26),
-            Container(
-              padding: const EdgeInsets.all(15),
-              decoration: QqaDecor.card(),
+            const SizedBox(height: 28),
+            GlassPanel(
+              radius: GlassRadius.panel,
+              padding: const EdgeInsets.fromLTRB(16, 15, 16, 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text('连接方式', style: QqaText.title),
-                  SizedBox(height: 10),
+                children: [
+                  Text('连接方式',
+                      style: GlassText.body.copyWith(
+                          color: ramp.content, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 12),
                   _Step(index: 1, text: '电脑上启动 QQA 与它的转接工具'),
                   _Step(index: 2, text: '两端都登录同一个 Tailscale 账号'),
                   _Step(index: 3, text: '把电脑显示的 HTTPS 地址填到这里'),
-                  SizedBox(height: 6),
+                  const SizedBox(height: 4),
                   Text('地址只保存在本机，不会上传到任何服务器。',
-                      style: QqaText.key),
+                      style: GlassText.mono.copyWith(color: ramp.contentFaint)),
                 ],
               ),
             ),
@@ -224,38 +241,33 @@ class _SlotChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ramp = GlassScope.rampOf(context);
+    final tint = selected ? ramp.accent : ramp.contentFaint;
+
     return Expanded(
-      child: InkWell(
+      child: GlassPanel(
+        radius: GlassRadius.chip,
+        padding: const EdgeInsets.fromLTRB(13, 12, 13, 12),
+        tint: selected ? ramp.panelTint + 0.08 : ramp.panelTint - 0.05,
+        border: true,
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 12),
-          decoration: BoxDecoration(
-            color: selected
-                ? QqaColors.accent.withValues(alpha: 0.12)
-                : QqaColors.surface,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: selected ? QqaColors.accent : QqaColors.line,
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: selected ? QqaColors.accent : QqaColors.text,
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w600,
-                ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GlassText.body.copyWith(
+                color: selected ? ramp.accent : ramp.content,
+                fontWeight: FontWeight.w600,
+                fontSize: 13.5,
               ),
-              const SizedBox(height: 3),
-              Text(configured ? '已配置' : '未配置', style: QqaText.key),
-            ],
-          ),
+            ),
+            const SizedBox(height: 3),
+            Text(configured ? '已配置' : '未配置',
+                style: GlassText.mono.copyWith(color: tint)),
+          ],
         ),
       ),
     );
@@ -270,27 +282,30 @@ class _Step extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ramp = GlassScope.rampOf(context);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 9),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 18,
-            height: 18,
+            width: 19,
+            height: 19,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: QqaColors.accent.withValues(alpha: 0.16),
+              color: ramp.accent.withValues(alpha: 0.16),
               shape: BoxShape.circle,
             ),
             child: Text('$index',
-                style: const TextStyle(
-                    color: QqaColors.accent,
+                style: GlassText.mono.copyWith(
+                    color: ramp.accent,
                     fontSize: 10.5,
                     fontWeight: FontWeight.w700)),
           ),
-          const SizedBox(width: 9),
-          Expanded(child: Text(text, style: QqaText.muted)),
+          const SizedBox(width: 10),
+          Expanded(
+              child: Text(text,
+                  style: GlassText.caption.copyWith(color: ramp.contentMuted))),
         ],
       ),
     );
