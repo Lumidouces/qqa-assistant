@@ -84,6 +84,21 @@ pub fn origin(input: &str) -> Result<String, String> {
     }
 }
 
+/// `true` when `link` resolves to the same origin as `origin`.
+pub fn same_origin(origin: &str, link: &str) -> bool {
+    let Ok(base) = self::origin(origin) else {
+        return false;
+    };
+    let absolute = match link.split_once("://") {
+        Some((scheme, rest)) => {
+            let authority = rest.split(['/', '?', '#']).next().unwrap_or("");
+            format!("{scheme}://{authority}/")
+        }
+        None => return false,
+    };
+    matches!(self::origin(&absolute), Ok(value) if value == base)
+}
+
 /// Truncate a display name to at most 8 code points.
 pub fn profile_name(input: &str, fallback: &str) -> String {
     let value = input.trim();
@@ -160,14 +175,61 @@ fn one_decimal(value: f64) -> String {
 }
 
 /// Token counter formatting used on the usage card.
+///
+/// Scale preference is `auto` unless the caller pins one:
+/// - `auto`: B from 1e9, M from 1e6, k from 1e3, plain below that.
+/// - `m`:    never goes above M, so 13.1B reads back as 13146.3M on tap.
+/// - `k`:    always k (debug / very small numbers).
 pub fn token_count(value: i64) -> String {
+    token_count_in(value, "auto")
+}
+
+/// Same as [`token_count`] with an explicit scale.
+pub fn token_count_in(value: i64, unit: &str) -> String {
     if value < 0 {
         return "— tok".to_string();
     }
-    if value >= 1000 {
-        return format!("{}k tok", one_decimal(value as f64 / 1000.0));
-    }
-    format!("{value} tok")
+    let unit = match unit {
+        "m" | "M" => "m",
+        "b" | "B" => "b",
+        "k" | "K" => "k",
+        _ => "auto",
+    };
+    let magnitude = value as f64;
+    let (divisor, suffix) = if unit == "k" {
+        if value >= 1_000 {
+            (1_000.0, "k")
+        } else {
+            return format!("{value} tok");
+        }
+    } else if unit == "m" {
+        if value >= 1_000_000 {
+            (1_000_000.0, "M")
+        } else if value >= 1_000 {
+            (1_000.0, "k")
+        } else {
+            return format!("{value} tok");
+        }
+    } else if unit == "b" {
+        if value >= 1_000_000_000 {
+            (1_000_000_000.0, "B")
+        } else if value >= 1_000_000 {
+            (1_000_000.0, "M")
+        } else if value >= 1_000 {
+            (1_000.0, "k")
+        } else {
+            return format!("{value} tok");
+        }
+    } else if value >= 1_000_000_000 {
+        (1_000_000_000.0, "B")
+    } else if value >= 1_000_000 {
+        (1_000_000.0, "M")
+    } else if value >= 1_000 {
+        (1_000.0, "k")
+    } else {
+        return format!("{value} tok");
+    };
+    format!("{}{suffix} tok", one_decimal(magnitude / divisor))
 }
 
 /// `0.85` -> `85%`; negative / unknown -> `—`.
@@ -313,6 +375,21 @@ mod tests {
     use super::*;
 
     #[test]
+    fn token_count_scales_by_intuition() {
+        // < 1e3 stays plain.
+        assert_eq!(token_count(999), "999 tok");
+        // k up to 1e6, M above that, B from 1e9.
+        assert_eq!(token_count(13_146), "13.1k tok");
+        assert_eq!(token_count(456_000), "456k tok");
+        assert_eq!(token_count(13_146_300), "13.1M tok");
+        assert_eq!(token_count(13_146_300_000), "13.1B tok");
+        // Tapping the figure pins the scale one step down.
+        assert_eq!(token_count_in(13_146_300_000, "m"), "13146.3M tok");
+        assert_eq!(token_count_in(13_146_300, "k"), "13146.3k tok");
+        assert_eq!(token_count_in(-1, "m"), "— tok");
+    }
+
+    #[test]
     fn origin_accepts_plain_https() {
         assert_eq!(origin("https://a.example").unwrap(), "https://a.example");
         assert_eq!(origin("HTTPS://A.Example/").unwrap(), "https://a.example");
@@ -364,3 +441,4 @@ mod tests {
         assert_eq!(profile_name("一二三四五六七八九十", "账号1"), "一二三四五六七八");
     }
 }
+

@@ -6,6 +6,7 @@ import '../core/api.dart';
 import '../core/ffi.dart';
 import '../core/models.dart';
 import '../core/store.dart';
+import '../core/tokens_fmt.dart';
 
 /// Single source of truth for the whole app: the persisted store, the live API
 /// client for the active account, and the last fetched snapshot.
@@ -173,6 +174,20 @@ class AppState extends ChangeNotifier {
     _notify();
   }
 
+  /// How token figures are scaled on the overview and logs tabs.
+  TokenScale get tokenScale => store.tokenScale;
+
+  Future<void> setTokenScale(TokenScale value) async {
+    await store.setTokenScale(value);
+    _notify();
+  }
+
+  /// One tap on a token figure walks auto → M → k → auto.
+  Future<void> cycleTokenScale() async {
+    await store.setTokenScale(store.tokenScale.next);
+    _notify();
+  }
+
   Future<void> setDarkMode(bool value) async {
     await store.setDarkMode(value);
     _notify();
@@ -209,6 +224,7 @@ class AppState extends ChangeNotifier {
       'calls': status.calls,
       'totalTokens': status.totalTokens,
       'cacheHitRate': status.cacheHitRate,
+      'tokenUnit': tokenScale.wire,
     });
   }
 

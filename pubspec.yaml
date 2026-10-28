@@ -1,7 +1,7 @@
 name: qqa_assistant
 description: "QQA 助手 · Rust + Flutter 重写版"
 publish_to: 'none'
-version: 1.2.0+2
+version: 1.3.1+4
 
 environment:
   sdk: ^3.9.2
@@ -21,3 +21,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  shaders:
+    - shaders/liquid_glass.frag

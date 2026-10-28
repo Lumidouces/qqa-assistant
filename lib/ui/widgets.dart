@@ -230,12 +230,14 @@ class Tile extends StatelessWidget {
     required this.value,
     this.hint,
     this.valueColor,
+    this.onTap,
   });
 
   final String label;
   final String value;
   final String? hint;
   final Color? valueColor;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) => GlassMetric(
@@ -243,6 +245,7 @@ class Tile extends StatelessWidget {
         value: value,
         hint: hint,
         valueColor: valueColor,
+        onTap: onTap,
       );
 }
 

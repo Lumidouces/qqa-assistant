@@ -106,17 +106,20 @@ class GlassRamps {
   );
 
   /// `CenteredDialog.DarkSurfaceAlpha` = 0.74 on a near-black base.
+  ///
+  /// 页面底色不能真的接近纯黑，否则玻璃后面没有任何东西可折射，
+  /// 面板会读成一块死灰板。这里把底色抬到 #0E1118，配合更亮的 veil。
   static const dark = GlassRamp(
-    page: Color(0xFF07080A),
+    page: Color(0xFF0E1118),
     pageVeil: [
-      Color(0xFF121722),
-      Color(0xFF0A0D13),
-      Color(0xFF141018),
+      Color(0xFF1B2436),
+      Color(0xFF10151F),
+      Color(0xFF1E1826),
     ],
-    surface: Color(0xFF050505),
+    surface: Color(0xFF1A1F2A),
     surfaceTop: Color(0xFF14161B),
-    chromeTint: 0.62,
-    panelTint: 0.48,
+    chromeTint: 0.58,
+    panelTint: 0.30,
     content: Color(0xFFF4F6FA),
     contentMuted: Color(0xFF9AA2B2),
     contentFaint: Color(0xFF646C7C),

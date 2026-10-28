@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/models.dart';
 import '../../state/app_state.dart';
 import '../widgets.dart';
+import '../../core/tokens_fmt.dart';
 
 /// 过程 · `/api/sessions` — one glass row per session, tap for the full trace.
 class LogsScreen extends StatelessWidget {
@@ -241,7 +242,9 @@ class _SessionSheetState extends State<_SessionSheet> {
                       text: model, dense: true, color: ramp.contentMuted),
                 if (usage['totalTokens'] != null)
                   GlassChip(
-                      text: '${usage['totalTokens']} tok',
+                      text: formatTokens(
+                          _tokenInt(usage['totalTokens']),
+                          scale: widget.state.tokenScale),
                       dense: true,
                       color: ramp.contentMuted),
               ],
@@ -447,4 +450,13 @@ class _ToolCallBubble extends StatelessWidget {
       ),
     );
   }
+}
+
+/// `usage['totalTokens']` arrives as int, double or string depending on the
+/// console build — normalise before formatting.
+int _tokenInt(Object? value) {
+  if (value is int) return value;
+  if (value is double) return value.round();
+  if (value is String) return int.tryParse(value) ?? -1;
+  return -1;
 }

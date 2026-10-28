@@ -14,8 +14,10 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
+import 'liquid_glass.dart';
 import 'tokens.dart';
 
+export 'liquid_glass.dart';
 export 'tokens.dart';
 
 /// Provides the active [GlassRamp] to the subtree.
@@ -143,60 +145,21 @@ class GlassPanel extends StatelessWidget {
     final ramp = GlassScope.rampOf(context);
     final alpha = tint ?? ramp.panelTint;
 
-    Widget body = Stack(
-      children: [
-        Positioned.fill(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color.alphaBlend(
-                      ramp.surfaceTop.withValues(alpha: alpha + 0.10), ramp.page),
-                  Color.alphaBlend(
-                      ramp.surface.withValues(alpha: alpha), ramp.page),
-                ],
-              ),
-            ),
-          ),
-        ),
-        if (highlight)
-          Positioned(
-            left: radius * 0.35,
-            right: radius * 0.35,
-            top: 0,
-            height: 1,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [
-                  ramp.highlight.withValues(alpha: 0),
-                  ramp.highlight,
-                  ramp.highlight.withValues(alpha: 0),
-                ]),
-                borderRadius: BorderRadius.circular(1),
-              ),
-            ),
-          ),
-        Padding(padding: padding, child: child),
-      ],
+    // 真正的液态玻璃：折射 + 染色 + 高光 + 内阴影由片元着色器一次出图。
+    // 参数取自 SleepDown 的 GlassMaterialSpec.dialog()，观感与上游同族。
+    final material = GlassMaterial.dialog(intensity: 1).copyWith(
+      blur: blur,
+      surfaceAlpha: alpha,
+      borderAlpha: border ? 0.24 : 0,
+      highlightAlpha: highlight ? 0.06 : 0,
     );
 
-    body = ClipRRect(
-      borderRadius: BorderRadius.circular(radius),
-      child: BackdropFilter(
-        filter: ui.ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-        child: body,
-      ),
-    );
-
-    body = DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(radius),
-        border: border ? Border.all(color: ramp.hairline) : null,
-        boxShadow: ramp.shadow,
-      ),
-      child: body,
+    Widget body = LiquidGlass(
+      material: material,
+      radius: radius,
+      padding: padding,
+      shadow: border,
+      child: child,
     );
 
     if (onTap != null) {
@@ -239,48 +202,20 @@ class GlassChrome extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ramp = GlassScope.rampOf(context);
-    Widget body = ClipRRect(
-      borderRadius: BorderRadius.circular(radius),
-      child: BackdropFilter(
-        filter: ui.ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: ColoredBox(
-                color: Color.alphaBlend(
-                  ramp.surface.withValues(alpha: ramp.chromeTint),
-                  ramp.page.withValues(alpha: 0.35),
-                ),
-              ),
-            ),
-            Positioned(
-              left: radius * 0.3,
-              right: radius * 0.3,
-              top: 0,
-              height: 1,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: [
-                    ramp.highlight.withValues(alpha: 0),
-                    ramp.highlight,
-                    ramp.highlight.withValues(alpha: 0),
-                  ]),
-                ),
-              ),
-            ),
-            Padding(padding: padding, child: child),
-          ],
-        ),
-      ),
+    // 顶栏 / Dock 用 pill 材质再压一层染色：上游 chromeTint 0.54~0.62。
+    final material = GlassMaterial.pill(intensity: 1.15).copyWith(
+      blur: blur,
+      surfaceAlpha: ramp.chromeTint * 0.55,
+      borderAlpha: 0.30,
+      highlightAlpha: 0.07,
+      shadowAlpha: 0.16,
     );
 
-    body = DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(radius),
-        border: Border.all(color: ramp.hairline),
-        boxShadow: ramp.outerShadow,
-      ),
-      child: body,
+    Widget body = LiquidGlass(
+      material: material,
+      radius: radius,
+      padding: padding,
+      child: child,
     );
 
     if (margin != null) body = Padding(padding: margin!, child: body);
@@ -673,6 +608,7 @@ class GlassMetric extends StatelessWidget {
     required this.value,
     this.hint,
     this.valueColor,
+    this.onTap,
   });
 
   final String label;
@@ -680,10 +616,13 @@ class GlassMetric extends StatelessWidget {
   final String? hint;
   final Color? valueColor;
 
+  /// Optional tap target — used to cycle the token unit.
+  final VoidCallback? onTap;
+
   @override
   Widget build(BuildContext context) {
     final ramp = GlassScope.rampOf(context);
-    return Column(
+    final column = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -704,6 +643,12 @@ class GlassMetric extends StatelessWidget {
               style: GlassText.mono.copyWith(color: ramp.contentFaint)),
         ],
       ],
+    );
+    if (onTap == null) return column;
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: column,
     );
   }
 }

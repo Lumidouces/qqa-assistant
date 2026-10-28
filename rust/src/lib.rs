@@ -103,16 +103,17 @@ pub unsafe extern "C" fn qqa_describe(input: *const c_char) -> *mut c_char {
     };
 
     let status_code = read_str("status");
+    let token_unit = read_str("tokenUnit");
     let data = json!({
         "statusLabel": rules::status_label(&status_code),
         "chatTitle": rules::chat_title(&read_str("chatKey"), &read_str("chatName")),
         "profileName": rules::profile_name(&read_str("profile"), &read_str("fallback")),
         "calls": rules::count(read_i64("calls", -1)),
-        "tokens": rules::token_count(read_i64("tokens", -1)),
-        "totalTokens": rules::count(read_i64("totalTokens", -1)),
-        "promptTokens": rules::token_count(read_i64("promptTokens", -1)),
-        "completionTokens": rules::token_count(read_i64("completionTokens", -1)),
-        "cacheReadTokens": rules::token_count(read_i64("cacheReadTokens", -1)),
+        "tokens": rules::token_count_in(read_i64("tokens", -1), &token_unit),
+        "totalTokens": rules::token_count_in(read_i64("totalTokens", -1), &token_unit),
+        "promptTokens": rules::token_count_in(read_i64("promptTokens", -1), &token_unit),
+        "completionTokens": rules::token_count_in(read_i64("completionTokens", -1), &token_unit),
+        "cacheReadTokens": rules::token_count_in(read_i64("cacheReadTokens", -1), &token_unit),
         "elapsed": rules::elapsed(read_i64("elapsedMs", -1)),
         "compactElapsed": rules::compact_elapsed(read_i64("elapsedMs", -1)),
         "toolTiming": rules::tool_timing(
@@ -178,12 +179,16 @@ pub unsafe extern "C" fn qqa_status_view(input: *const c_char) -> *mut c_char {
         .get("cacheHitRate")
         .and_then(Value::as_f64)
         .unwrap_or(-1.0);
+    let token_unit = parsed
+        .get("tokenUnit")
+        .and_then(Value::as_str)
+        .unwrap_or("auto");
 
     envelope(Ok(json!({
         "connectionLabel": if connected { "控制台已连接" } else { "控制台未连接" },
         "botLabel": if connected && !paused { "DSH 运行中" } else if paused { "自动回复已暂停" } else { "DSH 未运行" },
         "calls": rules::count(calls),
-        "totalTokens": rules::token_count(total),
+        "totalTokens": rules::token_count_in(total, token_unit),
         "hitRate": rules::percent(hit),
         "accent": if connected && !paused { "ok" } else if paused { "warn" } else { "idle" },
     })))

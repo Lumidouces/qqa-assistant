@@ -14,6 +14,8 @@ import 'ui/screens/tools_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // 先把液态玻璃着色器编译好，避免首帧闪一下假玻璃。
+  await GlassShader.load();
   final store = await AppStore.load();
   final state = AppState(store);
   runApp(QqaApp(state: state));

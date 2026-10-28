@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../state/app_state.dart';
 import '../widgets.dart';
+import '../../core/tokens_fmt.dart';
 
 /// 总览 — status hero, the four counters, usage, and the shortcut strip.
 class OverviewScreen extends StatelessWidget {
@@ -226,9 +227,11 @@ class _UsageCard extends StatelessWidget {
               Expanded(
                 child: Tile(
                   label: '总 tokens',
-                  value: '${labels['totalTokens'] ?? '—'}',
-                  hint:
-                      '入 ${state.status.promptTokens} · 出 ${state.status.completionTokens}',
+                  value: formatTokensBare(state.status.totalTokens,
+                      scale: state.tokenScale),
+                  hint: '入 ${formatTokensBare(state.status.promptTokens, scale: state.tokenScale)}'
+                      ' · 出 ${formatTokensBare(state.status.completionTokens, scale: state.tokenScale)}',
+                  onTap: state.cycleTokenScale,
                 ),
               ),
               const SizedBox(width: 12),
@@ -259,7 +262,8 @@ class _UsageCard extends StatelessWidget {
               Expanded(
                 child: Tile(
                   label: '缓存读',
-                  value: '${state.status.cacheReadTokens}',
+                  value: formatTokensBare(state.status.cacheReadTokens,
+                      scale: state.tokenScale),
                   hint: '命中 ${labels['hitRate'] ?? '—'}',
                 ),
               ),

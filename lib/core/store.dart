@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'ffi.dart';
+import 'tokens_fmt.dart';
 
 /// One saved PC connection. The original app had two fixed slots ("账号1"));
 /// keeping the same idea means switching PCs is one tap, exactly like before.
@@ -70,6 +71,7 @@ class AppStore {
   static const _limitKey = 'session_limit';
   static const _messageLimitKey = 'message_limit';
   static const _refreshKey = 'refresh_seconds';
+  static const _tokenScaleKey = 'token_scale';
 
   static const accountCount = 2;
 
@@ -158,6 +160,18 @@ class AppStore {
   int get messageLimit => (_prefs.getInt(_messageLimitKey) ?? 80).clamp(10, 300);
   Future<void> setMessageLimit(int value) =>
       _prefs.setInt(_messageLimitKey, value.clamp(10, 300));
+
+  /// How token figures are scaled — see `core/tokens_fmt.dart`.
+  TokenScale get tokenScale {
+    final raw = _prefs.getString(_tokenScaleKey) ?? 'auto';
+    return TokenScale.values.firstWhere(
+      (item) => item.wire == raw,
+      orElse: () => TokenScale.auto,
+    );
+  }
+
+  Future<void> setTokenScale(TokenScale value) =>
+      _prefs.setString(_tokenScaleKey, value.wire);
 
   int get refreshSeconds => (_prefs.getInt(_refreshKey) ?? 30).clamp(5, 300);
   Future<void> setRefreshSeconds(int value) =>
