@@ -126,15 +126,18 @@ Android 15 API 35 x86_64 模拟器实测：总览显示真实机器人昵称、�
    `adb uninstall cn.local.qqa.qqa_assistant`。
 4. **预置账号用 `run-as`**。模拟器上想跳过手输地址，直接把 `FlutterSharedPreferences.xml`
    push 进 `shared_prefs/`（`adb shell run-as cn.local.qqa.qqa_assistant cp ...`）。
-5. **NDK clang 在 Windows 上是 `.cmd`**。`build-rust.sh` 里要同时探 `.cmd` 和 `.exe`，
-   否则 `CARGO_TARGET_*_LINKER` 指向不存在的文件，cargo 报 linker not found。
+5. **NDK clang 在 Windows 上是 `.cmd`**。NDK 目录里同时有 `aarch64-linux-android24-clang`
+   （POSIX 脚本）和 `.cmd` 包装器，前者不是有效 Win32 可执行文件。`build-rust.sh` 在
+   Windows 上优先找 `.cmd`/`.exe`，否则 cargo 报 `os error 193 / not a valid Win32 application`。
+6. **JDK 25 打不了包**。Gradle 8.12 在 JDK 25 上直接 `BUILD FAILED`，错误信息只有一行
+   `25.0.3`。用 JDK 21：`export JAVA_HOME="/c/Program Files/Java/jdk-21.0.10"`。
 
 ## 测试
 
 ```
-flutter analyze   → No issues found
-flutter test      → 7 passed
-cd rust && cargo test → 8 passed
+flutter analyze        → No issues found
+flutter test           → 7 passed
+cd rust && cargo test  → 10 passed
 ```
 
 ## 许可

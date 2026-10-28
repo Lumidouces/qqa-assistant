@@ -84,21 +84,6 @@ pub fn origin(input: &str) -> Result<String, String> {
     }
 }
 
-/// `true` when `link` resolves to the same origin as `origin`.
-pub fn same_origin(origin: &str, link: &str) -> bool {
-    let Ok(base) = self::origin(origin) else {
-        return false;
-    };
-    let absolute = match link.split_once("://") {
-        Some((scheme, rest)) => {
-            let authority = rest.split(['/', '?', '#']).next().unwrap_or("");
-            format!("{scheme}://{authority}/")
-        }
-        None => return false,
-    };
-    matches!(self::origin(&absolute), Ok(value) if value == base)
-}
-
 /// Truncate a display name to at most 8 code points.
 pub fn profile_name(input: &str, fallback: &str) -> String {
     let value = input.trim();

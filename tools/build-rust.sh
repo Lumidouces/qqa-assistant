@@ -50,15 +50,18 @@ case "$TARGET" in
   *) echo "unsupported TARGET: $TARGET" >&2; exit 1 ;;
 esac
 
-# Host tag differs per platform; the clang binary may be .cmd on Windows.
+# Host tag differs per platform. On Windows the NDK ships both a POSIX shell
+# script (no extension) and a `.cmd` wrapper; the extension-less one is NOT a
+# valid Win32 executable, so prefer .cmd/.exe there or cargo fails with
+# "os error 193 / not a valid Win32 application".
 case "$(uname -s)" in
-  MINGW*|MSYS*|CYGWIN*) HOST_TAG="windows-x86_64" ;;
-  Darwin)               HOST_TAG="darwin-x86_64" ;;
-  *)                    HOST_TAG="linux-x86_64" ;;
+  MINGW*|MSYS*|CYGWIN*) HOST_TAG="windows-x86_64"; EXTS=".cmd .exe" ;;
+  Darwin)               HOST_TAG="darwin-x86_64";  EXTS="" ;;
+  *)                    HOST_TAG="linux-x86_64";   EXTS="" ;;
 esac
 
 CLANG=""
-for ext in "" ".cmd" ".exe"; do
+for ext in $EXTS ""; do
   candidate="$NDK/toolchains/llvm/prebuilt/$HOST_TAG/bin/${CLANG_PREFIX}${API}-clang${ext}"
   if [ -f "$candidate" ]; then CLANG="$candidate"; break; fi
 done
