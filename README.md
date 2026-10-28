@@ -4,8 +4,16 @@
 界面按深色 OLED + 绿色强调的视觉稿重做，底层换成 Rust 核心 + Flutter UI。
 
 - 包名：`cn.local.qqa.qqa_assistant`（与原版一致，可覆盖安装需先卸载，签名不同）
-- 版本：1.2.0
-- 产物：`dist/QQA-Assistant-RustFlutter-arm64-v1.2.0.apk`（19.8 MB，arm64-v8a）
+- 版本：1.2.1
+- 产物：`dist/QQA-Assistant-RustFlutter-arm64-v1.2.1.apk`（21.1 MB，arm64-v8a）
+
+### 1.2.1 变更（token 单位阶梯）
+
+- 新增 `lib/core/tokens_fmt.dart`：`formatTokens(value, scale)` 三档 —— `auto` 按数量自动选（≥10 亿 B / ≥100 万 M / ≥1000 k）、`mega` 固定 M、`kilo` 固定 k。
+- 总 tokens 数字可点，循环切换三档；选择写进 `SharedPreferences`（`token_scale`），重开保留。设置 → 外观里也有选择器 + 实时示例。
+- Rust `rules::token_count_in(value, unit)` 与 Dart 端算法对齐；`qqa_describe` / `qqa_status_view` 读 `tokenUnit` 字段。
+- 修掉 k 档旧 bug：小于 1000 不再输出 `0.5k`，直接给原数。
+- 新增 `lib/core/version.dart` 作为版本号唯一来源，设置页不再写死字符串。
 
 ### 1.2.0 变更（UI 重构：玻璃拟态）
 

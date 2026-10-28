@@ -5,6 +5,7 @@ import '../../state/app_state.dart';
 import '../widgets.dart';
 import 'connect_screen.dart';
 import '../../core/tokens_fmt.dart';
+import '../../core/version.dart';
 
 /// 设置页 —— 对齐 SleepDown 的分段多标签结构：
 ///
@@ -170,7 +171,7 @@ class _IntroCard extends StatelessWidget {
             runSpacing: 7,
             children: [
               GlassChip(text: _versionLabel(), icon: Icons.memory_rounded, dense: true),
-              GlassChip(text: 'v1.3.0', icon: Icons.sell_rounded, dense: true),
+              GlassChip(text: 'v$appVersion', icon: Icons.sell_rounded, dense: true),
               GlassChip(
                 text: state.account.configured
                     ? state.account.label
@@ -557,7 +558,7 @@ class _AboutTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final ramp = GlassScope.rampOf(context);
     final rows = <({String label, String value})>[
-      (label: '应用版本', value: '1.3.0 (build 3)'),
+      (label: '应用版本', value: appVersionFull),
       (label: '规则内核', value: _safeCore()),
       (label: '界面', value: 'Flutter 3.35 · Impeller'),
       (label: '玻璃材质', value: 'Kyant Backdrop 2.0 移植'),
