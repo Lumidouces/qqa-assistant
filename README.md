@@ -1,16 +1,50 @@
 # QQA 助手 · Kotlin + Flutter 重写版
 
 基于 `QQA-Assistant-Public-1.0.4` 的**逻辑**重写的 Android 客户端。
-界面是深色玻璃拟态 + 液态玻璃标签栏，规则内核用 Kotlin（MethodChannel），界面用 Flutter。
+界面是深色玻璃拟态 + 液态玻璃标签栏；规则内核有 **Kotlin** 与 **Rust** 两个等价实现，
+同一版本号出两份 APK 并存，功能与界面完全一致，只有内核通路不同。
 
 - 包名：`cn.local.qqa.qqa_assistant`（与原版一致，签名不同，覆盖安装前需先卸载）
 - 版本：1.4.4
-- 产物：`QQA-Assistant-arm64-v1.4.4.apk`（19.6 MB，arm64-v8a）
+- 产物（任选其一，装前先卸载另一个）：
+  - `QQA-Assistant-arm64-v1.4.4-kotlin.apk` — Kotlin 内核（MethodChannel），19.6 MB，**推荐默认**
+  - `QQA-Assistant-arm64-v1.4.4-rust.apk` — Rust 内核（dart:ffi），20.0 MB
+
+## 两个版本各自的优势
+
+**Kotlin 版**
+- APK 更干净：没有额外原生库，不存在 `.so` 与 ABI 不匹配导致的「无法安装」；21 MB 内只有 `libflutter.so` / `libapp.so`。
+- 同进程 JVM 调用，不过 NDK 边界；规则代码直接随 `./gradlew :app:testReleaseUnitTest` 在 JVM 上跑单测。
+- 构建只依赖 JDK 21，不需要 Rust 工具链和 NDK 交叉编译，clone 下来 `flutter build apk` 就能出包。
+- 规则层异常是普通 Kotlin 异常，堆栈可读、可断点。
+
+**Rust 版**
+- 同一份规则可被非 Flutter 前端复用（CLI / 服务端 / 桌面端），暴露稳定的 C ABI（`qqa_*` 符号）。
+- 纯计算零 GC 压力：格式化、CQ 码折叠、预览截断都在原生侧完成，高频刷新更省内存。
+- 内存安全由编译器保证；规则代码可以脱离 Android 用 `cargo test` 验证。
+- 需要「一套内核多端共用」时只有 Rust 能做，Kotlin 版绑死 Android。
+
+切换方式：卸载重装即可，两者共用同一份本地设置（地址存 DataStore，与内核无关）。
+
+## 自己构建这两种包
+
+```bash
+# Kotlin 内核（默认，不带 --dart-define）
+flutter build apk --release --target-platform android-arm64
+
+# Rust 内核：先编 .so，再带上开关
+bash tools/build-rust.sh                       # 产出 rust/target/*/release/libqqa_core.so
+cp rust/target/arm64-v8a/libqqa_core.so android/app/src/main/jniLibs/arm64-v8a/
+flutter build apk --release --target-platform android-arm64 --dart-define=QQA_KERNEL_RUST=true
+```
+
+内核选择在 `lib/core/core.dart`：`const kRustKernel = bool.fromEnvironment('QQA_KERNEL_RUST')`，
+为 true 走 `dart:ffi` 打开 `libqqa_core.so`，为 false 走 `MethodChannel('qqa/core')` 调 `QqaCore`。
 
 ### 1.4.4 变更（规则内核 Rust 版回归，作为参考实现并存）
 
 - `rust/` 目录重新入库：`qqa_core` 0.1.0 完整回归（`rules.rs` 444 行 + `lib.rs` 364 行 + `bin/golden.rs`）。
-  它**不参与打包**，出厂仍是 Kotlin 内核，作用是给规则层留一份独立语言的对照物。
+  默认不参与打包（出厂是 Kotlin 内核）；加 `--dart-define=QQA_KERNEL_RUST=true` 编出来的就是 Rust 内核包，两份 APK 同版本号并存。
 - `lib.rs` 里把 `qqa_describe` / `qqa_status_view` 的正文抽成 `describe_payload` / `status_view_payload`，
   并新增 `pub fn dispatch(method, args)`：和 Kotlin `QqaCore.handle` 同一张方法表（version / origin /
   previews / describe / statusView + 13 条单规则）。

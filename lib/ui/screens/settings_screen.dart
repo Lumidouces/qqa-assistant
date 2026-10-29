@@ -45,7 +45,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             _AppRow(
               version: appVersion,
-              subtitle: 'Kotlin 规则内核 · Flutter 液态玻璃界面',
+              subtitle: '$kernelHeadline · Flutter 液态玻璃界面',
             ),
           ],
         ),
@@ -331,7 +331,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 8),
           Text(
             '界面风格与液态玻璃着色器移植自 SleepDown-Schedule'
-            '（Kyant Backdrop 2.0，Apache-2.0）；规则内核为 Kotlin，界面为 Flutter。',
+            '（Kyant Backdrop 2.0，Apache-2.0）；规则内核为 $kernelName，界面为 Flutter。',
             style: GlassText.caption
                 .copyWith(color: ramp.contentMuted, height: 1.55),
           ),

@@ -1,0 +1,15 @@
+# Android cross-compilation. The NDK's clang wrapper must be named explicitly
+# per target — cargo's default `cc` does not exist on this Windows host, and the
+# wrapper also injects the correct sysroot / --target flags for us.
+
+[target.aarch64-linux-android]
+linker = "E:/toolchains/android-sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/windows-x86_64/bin/aarch64-linux-android24-clang.cmd"
+ar = "E:/toolchains/android-sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/windows-x86_64/bin/llvm-ar.exe"
+
+[target.armv7-linux-androideabi]
+linker = "E:/toolchains/android-sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/windows-x86_64/bin/armv7a-linux-androideabi24-clang.cmd"
+ar = "E:/toolchains/android-sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/windows-x86_64/bin/llvm-ar.exe"
+
+[target.x86_64-linux-android]
+linker = "E:/toolchains/android-sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/windows-x86_64/bin/x86_64-linux-android24-clang.cmd"
+ar = "E:/toolchains/android-sdk/ndk/27.0.12077973/toolchains/llvm/prebuilt/windows-x86_64/bin/llvm-ar.exe"
