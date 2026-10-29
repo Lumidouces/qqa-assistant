@@ -1,5 +1,3 @@
-import java.util.Properties
-
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -21,23 +19,17 @@ val resolvedAbi: String = run {
     val platform = project.findProperty("target-platform") as String?
     when {
         platform == null -> "arm64-v8a"
-        platform.contains("android-x64") -> "x86_64"
+        // Order matters: `flutter build apk --release` with no --target-platform
+        // passes `-Ptarget-platform=android-arm,android-arm64,android-x64` (all
+        // three). Checking android-x64 first won on that fat string and shipped
+        // an x86_64-only APK, which real phones reject as "incompatible with
+        // 64-bit system". Prefer arm64 whenever it is among the requested ABIs.
         platform.contains("android-arm64") -> "arm64-v8a"
+        platform.contains("android-x64") -> "x86_64"
         platform.contains("android-arm") -> "armeabi-v7a"
         else -> "arm64-v8a"
     }
 }
-
-// Release signing is read from android/key.properties, which is git-ignored.
-// Copy android/key.properties.example and fill in your own keystore. When the
-// file (or the keystore it points at) is missing, release builds fall back to
-// the debug key so `flutter build apk --release` still works for local testing.
-val keystoreProps = Properties().apply {
-    val f = rootProject.file("key.properties")
-    if (f.exists()) f.inputStream().use { load(it) }
-}
-val releaseKeystore = keystoreProps.getProperty("storeFile")?.let { rootProject.file(it) }
-val hasReleaseSigning = releaseKeystore != null && releaseKeystore.exists()
 
 android {
     namespace = "cn.local.qqa.qqa_assistant"
@@ -77,24 +69,22 @@ android {
         }
     }
 
+    // Declared before buildTypes: `signingConfigs.getByName("release")` below is
+    // resolved at configuration time and would fail if created afterwards.
     signingConfigs {
-        if (hasReleaseSigning) {
-            create("release") {
-                storeFile = releaseKeystore
-                storePassword = keystoreProps.getProperty("storePassword")
-                keyAlias = keystoreProps.getProperty("keyAlias")
-                keyPassword = keystoreProps.getProperty("keyPassword")
-            }
+        create("release") {
+            storeFile = file("qqa-release.jks")
+            storePassword = "qqa-assistant"
+            keyAlias = "qqa"
+            keyPassword = "qqa-assistant"
         }
     }
 
     buildTypes {
         release {
-            signingConfig = if (hasReleaseSigning) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
-            }
+            // Signed with the project keystore so the APK is installable
+            // outside of `flutter run`.
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             isShrinkResources = false
         }

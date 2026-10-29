@@ -4,8 +4,21 @@
 界面按深色 OLED + 绿色强调的视觉稿重做，底层换成 Rust 核心 + Flutter UI。
 
 - 包名：`cn.local.qqa.qqa_assistant`（与原版一致，可覆盖安装需先卸载，签名不同）
-- 版本：1.2.1
-- 产物：`dist/QQA-Assistant-RustFlutter-arm64-v1.2.1.apk`（21.1 MB，arm64-v8a）
+- 版本：1.2.2
+- 产物：`dist/QQA-Assistant-RustFlutter-arm64-v1.2.2.apk`（19.9 MB，arm64-v8a）
+
+### 1.2.2 变更（修 ABI：真机装不上）
+
+`build.gradle.kts` 的 `resolvedAbi` 判断顺序有 bug：`flutter build apk --release`
+不带 `--target-platform` 时传的是 `-Ptarget-platform=android-arm,android-arm64,android-x64`
+（三个都在），原来先匹配 `android-x64` 就赢了，于是打出来的是 **x86_64-only** 的包 ——
+真机安装报「该应用与64位系统不兼容」。
+
+- `resolvedAbi` 改为优先匹配 `android-arm64`，再 `android-x64`，最后 `android-arm`。
+- 新增 `tools/check-apk-abi.sh`：发布前校验 APK 里的 ABI 集合 + `libqqa_core.so`
+  的 ELF machine（183=aarch64 / 62=x86_64），不匹配就非零退出。
+- 现在 `flutter build apk --release` 直接出 arm64-v8a 单 ABI 包，模拟器跑用
+  `-PtargetAbi=x86_64`。
 
 ### 1.2.1 变更（token 单位阶梯）
 
