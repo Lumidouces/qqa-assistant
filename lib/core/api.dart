@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'models.dart';
+import 'version.dart';
 
 /// Thrown for any failed `/api/` round trip, with a message that is safe to
 /// show to the user (the original Java app used the same wording).
@@ -27,7 +28,7 @@ class QqaApi {
   final Duration connectTimeout;
   final Duration readTimeout;
 
-  static const _userAgent = 'QQA-Assistant/1.0.4 (Flutter)';
+  static final String _userAgent = 'QQA-Assistant/$appVersion (Flutter)';
   static const _maxBytes = 10 * 1024 * 1024;
 
   HttpClient _client() {

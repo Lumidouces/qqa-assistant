@@ -130,7 +130,13 @@ class AppStore {
   /// Validate then persist an origin typed by the user.
   Future<Account> connect(int slot, String typed, {String name = ''}) async {
     final normalized = await normalizeOrigin(typed);
-    final account = Account(slot: slot, origin: normalized, name: name);
+    // 常用入口是跟着槽位走的偏好，重连/改地址不该把它清掉。
+    final account = Account(
+      slot: slot,
+      origin: normalized,
+      name: name,
+      quickAccess: accounts[slot].quickAccess,
+    );
     await saveAccount(account);
     await setActiveSlot(slot);
     return account;
@@ -138,7 +144,12 @@ class AppStore {
 
   Future<void> disconnect(int slot) async {
     final current = accounts[slot];
-    await saveAccount(Account(slot: slot, name: current.name));
+    // 断开只丢地址与备注以外的偏好：常用入口留着，重连后直接能用。
+    await saveAccount(Account(
+      slot: slot,
+      name: current.name,
+      quickAccess: current.quickAccess,
+    ));
   }
 
   Future<void> setQuickAccess(int slot, List<String> ids) async {

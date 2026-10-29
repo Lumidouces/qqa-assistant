@@ -39,6 +39,10 @@ class AppState extends ChangeNotifier {
   Timer? _listTimer;
   bool _disposed = false;
 
+  /// 每次换号/重连/断开都加一：在飞行中的请求回来时对不上就直接丢弃，
+  /// 否则刚断开连接、上一轮的响应又把旧会话写回来了。
+  int _epoch = 0;
+
   QqaApi? get api {
     final origin = account.origin;
     if (origin.isEmpty) return null;
@@ -74,14 +78,17 @@ class AppState extends ChangeNotifier {
   Future<void> refreshStatus() async {
     final client = api;
     if (client == null || loadingStatus) return;
+    final epoch = _epoch;
     loadingStatus = true;
     _notify();
     try {
-      status = await client.status();
+      final snapshot = await client.status();
+      if (epoch != _epoch) return;
+      status = snapshot;
       statusError = null;
       lastUpdated = DateTime.now();
     } on Object catch (error) {
-      statusError = '$error';
+      if (epoch == _epoch) statusError = '$error';
     } finally {
       loadingStatus = false;
       _notify();
@@ -91,18 +98,27 @@ class AppState extends ChangeNotifier {
   Future<void> refreshLists() async {
     final client = api;
     if (client == null) return;
+    final epoch = _epoch;
     if (!loadingSessions) {
       loadingSessions = true;
       _notify();
       try {
         final rows = await client.sessions(limit: store.sessionLimit);
+        if (epoch != _epoch) return;
+        // 预览由 Kotlin 内核一次折叠。会话与预览必须同时落定：中途 notify
+        // 会让新行配上旧预览，出现「张冠李戴」的一行。
+        List<String> collapsed;
+        try {
+          collapsed = await previews(rows.map((row) => row.trigger).toList());
+        } on Object {
+          collapsed = List<String>.filled(rows.length, '');
+        }
+        if (epoch != _epoch) return;
         sessions = rows;
+        sessionPreviews = collapsed;
         sessionsError = null;
-        // Previews are collapsed by the Rust core in one FFI hop.
-        sessionPreviews =
-            await previews(rows.map((row) => row.trigger).toList());
       } on Object catch (error) {
-        sessionsError = '$error';
+        if (epoch == _epoch) sessionsError = '$error';
       } finally {
         loadingSessions = false;
         _notify();
@@ -112,10 +128,12 @@ class AppState extends ChangeNotifier {
       loadingChats = true;
       _notify();
       try {
-        chats = await client.chats();
+        final rows = await client.chats();
+        if (epoch != _epoch) return;
+        chats = rows;
         chatsError = null;
       } on Object catch (error) {
-        chatsError = '$error';
+        if (epoch == _epoch) chatsError = '$error';
       } finally {
         loadingChats = false;
         _notify();
@@ -146,18 +164,32 @@ class AppState extends ChangeNotifier {
   /// Validate + persist a connection for [slot], then start polling.
   Future<void> connect(int slot, String typed, {String name = ''}) async {
     await store.connect(slot, typed, name: name);
+    _epoch++;
     _restartPolling();
     _notify();
     await refreshAll();
   }
 
-  Future<void> switchAccount(int slot) async {
-    await store.setActiveSlot(slot);
+  /// 换号/断开共用的清场：数据、错误、时间戳一起清，在飞行中的响应作废。
+  void _resetSnapshot() {
+    _epoch++;
     status = const StatusData();
     sessions = const [];
-    chats = const [];
     sessionPreviews = const [];
+    chats = const [];
     statusError = null;
+    sessionsError = null;
+    chatsError = null;
+    lastUpdated = null;
+    loadingStatus = false;
+    loadingSessions = false;
+    loadingChats = false;
+    _heroSignature = '';
+  }
+
+  Future<void> switchAccount(int slot) async {
+    await store.setActiveSlot(slot);
+    _resetSnapshot();
     _restartPolling();
     _notify();
     if (ready) await refreshAll();
@@ -165,10 +197,7 @@ class AppState extends ChangeNotifier {
 
   Future<void> disconnectActive() async {
     await store.disconnect(account.slot);
-    status = const StatusData();
-    sessions = const [];
-    chats = const [];
-    sessionPreviews = const [];
+    _resetSnapshot();
     _restartPolling();
     _notify();
   }
@@ -265,6 +294,8 @@ class AppState extends ChangeNotifier {
       notifyListeners();
     }, onError: (Object _) {
       _heroInFlight = false;
+      // 这次没算出来就把签名作废，下一次 notify 还会再试一次。
+      _heroSignature = '';
     });
   }
 

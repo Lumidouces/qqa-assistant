@@ -141,7 +141,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
               autocorrect: false,
               style: GlassText.body.copyWith(color: ramp.content),
               decoration: InputDecoration(
-                hintText: 'https://your-pc.tailnet.ts.net',
+                hintText: 'https://your-tunnel.example.com',
                 prefixIcon: Icon(Icons.link_rounded,
                     size: 18, color: ramp.contentFaint),
               ),
@@ -210,9 +210,9 @@ class _ConnectScreenState extends State<ConnectScreen> {
                       style: GlassText.body.copyWith(
                           color: ramp.content, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 12),
-                  _Step(index: 1, text: '电脑上启动 QQA 与它的转接工具'),
-                  _Step(index: 2, text: '两端都登录同一个 Tailscale 账号'),
-                  _Step(index: 3, text: '把电脑显示的 HTTPS 地址填到这里'),
+                  _Step(index: 1, text: '电脑上启动 QQA 控制台'),
+                  _Step(index: 2, text: '用隧道工具给它一个公网 HTTPS 地址'),
+                  _Step(index: 3, text: '把隧道显示的 HTTPS 地址填到这里'),
                   const SizedBox(height: 4),
                   Text('地址只保存在本机，不会上传到任何服务器。',
                       style: GlassText.mono.copyWith(color: ramp.contentFaint)),

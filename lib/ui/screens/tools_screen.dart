@@ -19,6 +19,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
   AppState get state => widget.state;
 
   Future<void> _run(Future<void> Function() body) async {
+    if (!mounted) return;
     setState(() => _busy = true);
     try {
       await body();
@@ -98,7 +99,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
           title: '断开连接',
           detail: '只清空本机保存的地址，不影响电脑',
           danger: true,
-          onTap: () => _run(state.disconnectActive),
+          onTap: () => _confirmDisconnect(context),
         ),
         const SizedBox(height: 20),
         const GlassSectionHeader(title: '关于'),
@@ -108,7 +109,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('QQA 助手 · Rust + Flutter 重写版',
+              Text('QQA 助手 · Kotlin + Flutter 重写版',
                   style: GlassText.body.copyWith(
                       color: ramp.content, fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
@@ -127,8 +128,47 @@ class _ToolsScreenState extends State<ToolsScreen> {
     );
   }
 
-  Future<void> _showSwitchSheet(BuildContext context) async {
+  /// 断开会清掉本机地址，误触一次就得重新手打 URL —— 先问一句。
+  Future<void> _confirmDisconnect(BuildContext context) async {
     final ramp = GlassScope.rampOf(context);
+    final ok = await showGlassSheet<bool>(
+      context: context,
+      builder: (sheetContext) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('断开这个账号？',
+              style: GlassText.title.copyWith(color: ramp.content)),
+          const SizedBox(height: 10),
+          Text('本机保存的地址会被清空，电脑上的 QQA 不受影响。',
+              style: GlassText.caption.copyWith(color: ramp.contentMuted)),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Expanded(
+                child: GhostButton(
+                  label: '取消',
+                  onPressed: () => Navigator.of(sheetContext).pop(false),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: PrimaryButton(
+                  label: '断开',
+                  danger: true,
+                  expand: true,
+                  onPressed: () => Navigator.of(sheetContext).pop(true),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+    if (ok == true) await _run(state.disconnectActive);
+  }
+
+  Future<void> _showSwitchSheet(BuildContext context) async {    final ramp = GlassScope.rampOf(context);
     final store = state.store;
     await showGlassSheet<void>(
       context: context,
