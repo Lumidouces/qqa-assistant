@@ -6,7 +6,7 @@
 
 - 包名：`cn.local.qqa.qqa_assistant`（与原版一致，签名不同，覆盖安装前需先卸载）
 - 版本：1.4.4
-- 产物（任选其一，装前先卸载另一个）：
+- 产物（任选其一，装前先卸载另一个；两份同版本号、同设置、同界面）：
   - `QQA-Assistant-arm64-v1.4.4-kotlin.apk` — Kotlin 内核（MethodChannel），19.6 MB，**推荐默认**
   - `QQA-Assistant-arm64-v1.4.4-rust.apk` — Rust 内核（dart:ffi），20.0 MB
 
@@ -32,10 +32,13 @@
 # Kotlin 内核（默认，不带 --dart-define）
 flutter build apk --release --target-platform android-arm64
 
-# Rust 内核：先编 .so，再带上开关
-bash tools/build-rust.sh                       # 产出 rust/target/*/release/libqqa_core.so
-cp rust/target/arm64-v8a/libqqa_core.so android/app/src/main/jniLibs/arm64-v8a/
+# Rust 内核：先编 .so（脚本会自己放进 jniLibs），再带上开关
+bash tools/build-rust.sh                       # = TARGET=aarch64-linux-android ABI_DIR=arm64-v8a
 flutter build apk --release --target-platform android-arm64 --dart-define=QQA_KERNEL_RUST=true
+
+# 想给模拟器编 x86_64 的 Rust 包：
+TARGET=x86_64-linux-android ABI_DIR=x86_64 bash tools/build-rust.sh
+flutter build apk --release --target-platform android-x64 --dart-define=QQA_KERNEL_RUST=true
 ```
 
 内核选择在 `lib/core/core.dart`：`const kRustKernel = bool.fromEnvironment('QQA_KERNEL_RUST')`，
