@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core.dart';
+import 'glass_quality.dart';
 import 'tokens_fmt.dart';
 
 /// One saved PC connection. The original app had two fixed slots ("账号1"));
@@ -72,6 +73,7 @@ class AppStore {
   static const _messageLimitKey = 'message_limit';
   static const _refreshKey = 'refresh_seconds';
   static const _tokenScaleKey = 'token_scale';
+  static const _glassQualityKey = 'glass_quality';
 
   static const accountCount = 2;
 
@@ -183,6 +185,13 @@ class AppStore {
 
   Future<void> setTokenScale(TokenScale value) =>
       _prefs.setString(_tokenScaleKey, value.wire);
+
+  /// Glass render quality — mirrors SleepDown's `AppMaterialLevel`.
+  GlassQuality get glassQuality =>
+      GlassQuality.fromWire(_prefs.getString(_glassQualityKey));
+
+  Future<void> setGlassQuality(GlassQuality value) =>
+      _prefs.setString(_glassQualityKey, value.wire);
 
   int get refreshSeconds => (_prefs.getInt(_refreshKey) ?? 30).clamp(5, 300);
   Future<void> setRefreshSeconds(int value) =>

@@ -1,3 +1,5 @@
+import java.util.Base64
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -31,6 +33,20 @@ val resolvedAbi: String = run {
         platform.contains("android-arm") -> "armeabi-v7a"
         else -> "arm64-v8a"
     }
+}
+
+// 只有显式要求 Rust 内核（`--dart-define=QQA_KERNEL_RUST=true`）时才把
+// libqqa_core.so 打进包。Kotlin 版的 APK 必须干净：否则两份产物里躺着同一个
+// .so，用户装哪份都分不清自己跑的是哪个内核。
+//
+// Flutter 把 --dart-define 编成 base64 塞进 -Pdart-defines，这里解回来判断。
+val rustKernelRequested: Boolean = run {
+    val raw = project.findProperty("dart-defines") as String? ?: return@run false
+    raw.split(",").mapNotNull { part ->
+        runCatching {
+            String(Base64.getMimeDecoder().decode(part), Charsets.UTF_8)
+        }.getOrNull()
+    }.any { it == "QQA_KERNEL_RUST=true" }
 }
 
 android {
@@ -68,6 +84,10 @@ android {
             val all = listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64", "mips", "mips64")
             val keep = resolvedAbi
             excludes += all.filter { it != keep }.map { "lib/$it/**" }
+            // kotlin 版不带自家 .so：tools/build-rust.sh 把 libqqa_core.so 放在
+            // 默认 jniLibs 目录里，这里在打包阶段剔掉，只有 --dart-define=
+            // QQA_KERNEL_RUST=true 的那次构建才保留。
+            if (!rustKernelRequested) excludes += "lib/**/libqqa_core.so"
         }
     }
 

@@ -5,10 +5,10 @@
 同一版本号出两份 APK 并存，功能与界面完全一致，只有内核通路不同。
 
 - 包名：`cn.local.qqa.qqa_assistant`（与原版一致，签名不同，覆盖安装前需先卸载）
-- 版本：1.4.4
+- 版本：1.4.5
 - 产物（任选其一，装前先卸载另一个；两份同版本号、同设置、同界面）：
-  - `QQA-Assistant-arm64-v1.4.4-kotlin.apk` — Kotlin 内核（MethodChannel），19.6 MB，**推荐默认**
-  - `QQA-Assistant-arm64-v1.4.4-rust.apk` — Rust 内核（dart:ffi），20.0 MB
+  - `QQA-Assistant-arm64-v1.4.5-kotlin.apk` — Kotlin 内核（MethodChannel），19.6 MB，**推荐默认**
+  - `QQA-Assistant-arm64-v1.4.5-rust.apk` — Rust 内核（dart:ffi），20.0 MB
 
 ## 两个版本各自的优势
 
@@ -32,9 +32,13 @@
 # Kotlin 内核（默认，不带 --dart-define）
 flutter build apk --release --target-platform android-arm64
 
-# Rust 内核：先编 .so（脚本会自己放进 jniLibs），再带上开关
+# Rust 内核：先编 .so（脚本自己放进 jniLibs），再带上开关
 bash tools/build-rust.sh                       # = TARGET=aarch64-linux-android ABI_DIR=arm64-v8a
 flutter build apk --release --target-platform android-arm64 --dart-define=QQA_KERNEL_RUST=true
+
+# 注意：jniLibs 里即使躺着 libqqa_core.so，只要这一次构建没带
+# --dart-define=QQA_KERNEL_RUST=true，Gradle 会在打包阶段把它剔掉，
+# 所以 Kotlin 版永远是干净包（APK 里只有 libflutter.so / libapp.so）。
 
 # 想给模拟器编 x86_64 的 Rust 包：
 TARGET=x86_64-linux-android ABI_DIR=x86_64 bash tools/build-rust.sh
@@ -43,6 +47,19 @@ flutter build apk --release --target-platform android-x64 --dart-define=QQA_KERN
 
 内核选择在 `lib/core/core.dart`：`const kRustKernel = bool.fromEnvironment('QQA_KERNEL_RUST')`，
 为 true 走 `dart:ffi` 打开 `libqqa_core.so`，为 false 走 `MethodChannel('qqa/core')` 调 `QqaCore`。
+
+### 1.4.5 变更（玻璃渲染提速 + 画质三档 + 打包闸门）
+
+- **玻璃渲染提速**：一屏常有 6~8 块玻璃，原先每块各自采样一次背景，是全 App 最贵的开销。
+  现在整棵树包进 `BackdropGroup`、材质层改用 `BackdropFilter.grouped`，引擎对同一张背景快照
+  只做一次模糊，观感不变。
+  模拟器实测（1080×2400，同一页面持续拖动 6s）：**3.7 fps → 6.8 fps**（高画质对高画质，约 1.8×）。
+- **设置页新增「玻璃画质」三档**（外观分组，改档立即生效、写入本地）：
+  `高画质` = 逐帧折射 + 高光 + 内阴影；`均衡` = 只做高斯模糊不折射；`省电` = 不采样背景、
+  纯半透明底色。同一台模拟器上省电档 15 fps，是玻璃全部关掉的天花板。
+- **打包闸门**：`libqqa_core.so` 只在带 `--dart-define=QQA_KERNEL_RUST=true` 的构建里进包，
+  Kotlin 版 APK 里再也看不到这个 .so（此前 jniLibs 残留会让两份产物看起来一模一样）。
+- 版本 1.4.5（build 13）。
 
 ### 1.4.4 变更（规则内核 Rust 版回归，作为参考实现并存）
 

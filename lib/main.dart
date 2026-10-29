@@ -85,7 +85,12 @@ class _QqaAppState extends State<QqaApp> with WidgetsBindingObserver {
                   textScaler: TextScaler.linear(_state.store.fontPercent / 100),
                 ),
                 child: GlassBackdrop(
-                  child: child ?? const SizedBox.shrink(),
+                  // 一屏可能有七八块玻璃，逐块采样背景是最贵的开销。
+                  // 用 BackdropGroup 让它们共享同一张背景快照：
+                  // 引擎只做一次模糊，观感不变，帧率按玻璃数量线性回升。
+                  child: BackdropGroup(
+                    child: child ?? const SizedBox.shrink(),
+                  ),
                 ),
               );
             },

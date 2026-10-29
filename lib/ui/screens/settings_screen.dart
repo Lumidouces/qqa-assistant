@@ -153,6 +153,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
               value: store.darkMode,
               onChanged: state.setDarkMode,
             ),
+            _ChoiceRow(
+              icon: Icons.blur_on_rounded,
+              tint: const Color(0xFF5E5CE6),
+              title: '玻璃画质',
+              subtitle: '${store.glassQuality.hint}（改档位立即生效）',
+              options: const [
+                (GlassQuality.high, '高画质'),
+                (GlassQuality.balanced, '均衡'),
+                (GlassQuality.off, '省电'),
+              ],
+              selected: store.glassQuality,
+              onSelect: state.setGlassQuality,
+            ),
             _SliderRow(
               icon: Icons.format_size_rounded,
               tint: const Color(0xFFFF9500),

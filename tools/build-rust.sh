@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-# Build the Rust core for Android and drop the .so where Flutter's Gradle build
-# expects prebuilt jniLibs.
+# Build the Rust core for Android and drop the .so into the default jniLibs dir.
+#
+# Gradle strips libqqa_core.so at packaging time unless the build asks for the
+# Rust kernel (`--dart-define=QQA_KERNEL_RUST=true`), so the Kotlin-flavour APK
+# stays free of any bundled .so.
 #
 # Toolchain lives on E: (installed earlier); nothing here needs a C compiler on
 # the host because the crate is pure Rust and Android links through NDK clang.

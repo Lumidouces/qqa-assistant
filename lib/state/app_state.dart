@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import '../core/api.dart';
 import '../core/core.dart';
+import '../core/glass_quality.dart' as gq;
 import '../core/models.dart';
 import '../core/store.dart';
 import '../core/tokens_fmt.dart';
@@ -12,6 +13,8 @@ import '../core/tokens_fmt.dart';
 /// client for the active account, and the last fetched snapshot.
 class AppState extends ChangeNotifier {
   AppState(this.store) {
+    // 玻璃画质是全局单例，启动时先把持久化的值灌进去，避免首帧闪高画质。
+    gq.glassQuality.value = store.glassQuality;
     _restartPolling();
     // 冷启动别干等第一个周期：地址是存下来的，直接拉一次。
     if (ready) Future.microtask(refreshAll);
@@ -224,6 +227,15 @@ class AppState extends ChangeNotifier {
   /// One tap on a token figure walks auto → M → k → auto.
   Future<void> cycleTokenScale() async {
     await store.setTokenScale(store.tokenScale.next);
+    _notify();
+  }
+
+  /// 玻璃画质档位（高画质 / 均衡 / 省电）。
+  gq.GlassQuality get glassQuality => store.glassQuality;
+
+  Future<void> setGlassQuality(gq.GlassQuality value) async {
+    await store.setGlassQuality(value);
+    gq.glassQuality.value = value;
     _notify();
   }
 

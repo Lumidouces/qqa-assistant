@@ -22,8 +22,12 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
+import '../core/glass_quality.dart';
 import 'glass.dart' show GlassScope;
 import 'tokens.dart';
+
+// 画质档位定义在 core 层：设置页（core/store）与材质层共用一个实例。
+export '../core/glass_quality.dart' show GlassQuality, glassQuality;
 
 /// 一次绘制消费的全部材质参数（对齐上游 `GlassMaterialSpec`）。
 @immutable
@@ -370,7 +374,13 @@ class _RadiusClipper extends CustomClipper<Path> {
 }
 
 /// 折射 + 染色 + 高光 + 内阴影，一次 shader 出结果。
-class _GlassSurface extends StatelessWidget {
+///
+/// 性能要点（对齐上游 backdrop 的采样策略）：
+///   1. 监听 [glassQuality]，只有改档位才切换通路；
+///   2. `ImageFilter` 按「几何 + 材质 + 配色」签名缓存，动画帧上不再重建
+///      fragment shader 与 filter 链 —— 这是原先最贵的一笔，每帧一次；
+///   3. 低档位干脆不装 `BackdropFilter`，整块背景采样都省掉。
+class _GlassSurface extends StatefulWidget {
   const _GlassSurface({
     required this.material,
     required this.ramp,
@@ -382,12 +392,40 @@ class _GlassSurface extends StatelessWidget {
   final double radius;
 
   @override
+  State<_GlassSurface> createState() => _GlassSurfaceState();
+}
+
+class _GlassSurfaceState extends State<_GlassSurface> {
+  /// 进程内滤镜缓存：同一块玻璃在连续帧上的几何/材质不变，直接复用。
+  static final Map<String, ui.ImageFilter> _cache = <String, ui.ImageFilter>{};
+  static const int _cacheLimit = 24;
+
+  @override
   Widget build(BuildContext context) {
-    if (!GlassShader.isLive) {
-      // 降级：普通模糊 + 半透明底色，观感接近但无折射。
-      return BackdropFilter(
-        filter: ui.ImageFilter.blur(
-            sigmaX: material.blur, sigmaY: material.blur),
+    return ValueListenableBuilder<GlassQuality>(
+      valueListenable: glassQuality,
+      builder: (context, quality, _) => _body(quality),
+    );
+  }
+
+  Widget _body(GlassQuality quality) {
+    final material = widget.material;
+    final ramp = widget.ramp;
+
+    if (quality == GlassQuality.off) {
+      // 等同上游 SUPER_PERFORMANCE：不采样背景，用不透明度补回层次。
+      return ColoredBox(
+        color: ramp.surface
+            .withValues(alpha: math.min(1.0, material.surfaceAlpha + 0.52)),
+      );
+    }
+
+    if (!GlassShader.isLive || quality == GlassQuality.balanced) {
+      // 降级 / 均衡：普通高斯模糊 + 半透明底色，无折射。
+      final sigma =
+          quality == GlassQuality.balanced ? material.blur * 0.85 : material.blur;
+      return BackdropFilter.grouped(
+        filter: ui.ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
         child: ColoredBox(
           color: ramp.surface.withValues(alpha: material.surfaceAlpha),
         ),
@@ -399,15 +437,39 @@ class _GlassSurface extends StatelessWidget {
       builder: (context, c) {
         final w = c.maxWidth.isFinite ? c.maxWidth : 1.0;
         final h = c.maxHeight.isFinite ? c.maxHeight : 1.0;
-        return BackdropFilter(
-          filter: _buildFilter(Size(w, h), dpr),
+        return BackdropFilter.grouped(
+          filter: _filter(Size(w, h), dpr),
           child: const SizedBox.expand(),
         );
       },
     );
   }
 
+  /// 缓存键只带「真正改变像素输出的输入」，故意不含 `highlightAlpha`：
+  /// 按压动画每秒改几十次高光强度，它一进键就等于每帧重建滤镜。
+  ui.ImageFilter _filter(Size size, double dpr) {
+    final m = widget.material;
+    final ramp = widget.ramp;
+    final key = '${size.width.toStringAsFixed(1)}x'
+        '${size.height.toStringAsFixed(1)}'
+        '|$dpr|${widget.radius.toStringAsFixed(2)}'
+        '|${m.blur}|${m.lensHeight}|${m.lensAmount}'
+        '|${m.surfaceAlpha}|${m.innerShadowAlpha}'
+        '|${m.highlightAngle}|${m.highlightFalloff}'
+        '|${m.chromaticAberration}|${m.depthEffect}|${m.useVibrancy}'
+        '|${ramp.surface.toARGB32()}|${ramp.highlight.toARGB32()}';
+    final hit = _cache[key];
+    if (hit != null) return hit;
+    final built = _buildFilter(size, dpr);
+    if (_cache.length >= _cacheLimit) _cache.remove(_cache.keys.first);
+    _cache[key] = built;
+    return built;
+  }
+
   ui.ImageFilter _buildFilter(Size size, double dpr) {
+    final material = widget.material;
+    final ramp = widget.ramp;
+    final radius = widget.radius;
     final shader = GlassShader.newShader();
     if (shader == null) {
       return ui.ImageFilter.blur(
