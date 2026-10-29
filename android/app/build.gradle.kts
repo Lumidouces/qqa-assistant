@@ -5,10 +5,12 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-// One ABI per build. The Rust core must exist as a .so for whatever ABI is
-// shipped: Gradle will happily merge plugin AARs for ABIs we have no
-// libapp.so / libflutter.so for, producing an APK that installs and then
-// crashes on load. Override with `-PtargetAbi=x86_64` for emulator runs.
+// One ABI per build. Gradle will happily merge plugin AARs for ABIs we have no
+// libapp.so / libflutter.so for, producing an APK that installs and then crashes
+// on load. Override with `-PtargetAbi=x86_64` for emulator runs.
+//
+// 规则内核已从 Rust 换成 Kotlin（android/.../QqaCore.kt），所以这里不再需要
+// 任何自带的 .so —— APK 里的 native 库只剩 Flutter 自己的那几个。
 //
 // `flutter build apk --target-platform android-x64` does NOT set targetAbi; it
 // only passes -Ptarget-platform, which Gradle otherwise ignores here. Map it so
@@ -93,4 +95,10 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // JVM 单测：QqaCoreTest 的断言与 rust/src/rules.rs 的 #[test] 一一对应，
+    // 用来证明 Kotlin 移植和 Rust 原版逐字符相同（`cd android && ./gradlew test`）。
+    testImplementation("junit:junit:4.13.2")
 }

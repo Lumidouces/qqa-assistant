@@ -14,6 +14,8 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
+import 'motion.dart';
+
 import 'liquid_glass.dart';
 import 'tokens.dart';
 
@@ -628,10 +630,9 @@ class GlassMetric extends StatelessWidget {
       children: [
         Text(label, style: GlassText.caption.copyWith(color: ramp.contentFaint)),
         const SizedBox(height: 6),
-        Text(
+        // 数字跳动时上滑换字，而不是原地闪现。
+        MorphText(
           value,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
           style: GlassText.metric
               .copyWith(color: valueColor ?? ramp.content, fontSize: 25),
         ),

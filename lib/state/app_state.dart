@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../core/api.dart';
-import '../core/ffi.dart';
+import '../core/core.dart';
 import '../core/models.dart';
 import '../core/store.dart';
 import '../core/tokens_fmt.dart';
@@ -90,7 +90,8 @@ class AppState extends ChangeNotifier {
         sessions = rows;
         sessionsError = null;
         // Previews are collapsed by the Rust core in one FFI hop.
-        sessionPreviews = previews(rows.map((row) => row.trigger).toList());
+        sessionPreviews =
+            await previews(rows.map((row) => row.trigger).toList());
       } on Object catch (error) {
         sessionsError = '$error';
       } finally {
@@ -216,20 +217,52 @@ class AppState extends ChangeNotifier {
   int get runningCount =>
       sessions.where((row) => row.status == 'running').length;
 
-  /// Formatted labels for the hero card and metric grid (computed in Rust).
-  Map<String, Object?> heroLabels() {
-    return statusView({
+  /// Labels the hero card and metric grid paint. Kotlin 算，这里只缓存：
+  /// build 里必须同步拿到值，所以规则结果在 [_scheduleHero] 里异步刷新。
+  Map<String, Object?> heroLabels() => _hero;
+
+  /// Stand-in shown before the first Kotlin round trip lands — same text the
+  /// rules would produce for a disconnected console, so nothing flickers.
+  Map<String, Object?> _hero = const {
+    'connectionLabel': '控制台未连接',
+    'botLabel': 'DSH 未运行',
+    'calls': '—',
+    'totalTokens': '— tok',
+    'hitRate': '—',
+    'accent': 'idle',
+  };
+
+  String _heroSignature = '';
+  bool _heroInFlight = false;
+
+  /// 只在输入真的变了才过一次平台通道，避免每帧都问 Kotlin。
+  void _scheduleHero() {
+    final signature = '${status.connected}|${status.paused}|${status.calls}|'
+        '${status.totalTokens}|${status.cacheHitRate}|${tokenScale.wire}';
+    if (signature == _heroSignature || _heroInFlight) return;
+    _heroSignature = signature;
+    _heroInFlight = true;
+    statusView({
       'connected': status.connected,
       'paused': status.paused,
       'calls': status.calls,
       'totalTokens': status.totalTokens,
       'cacheHitRate': status.cacheHitRate,
       'tokenUnit': tokenScale.wire,
+    }).then((value) {
+      _heroInFlight = false;
+      if (_disposed) return;
+      _hero = value;
+      notifyListeners();
+    }, onError: (Object _) {
+      _heroInFlight = false;
     });
   }
 
   void _notify() {
-    if (!_disposed) notifyListeners();
+    if (_disposed) return;
+    notifyListeners();
+    _scheduleHero();
   }
 
   @override

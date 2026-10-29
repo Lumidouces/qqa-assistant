@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'core/core.dart';
 import 'core/store.dart';
 import 'design/glass.dart';
 import 'design/liquid_tabs.dart';
+import 'design/motion.dart';
 import 'state/app_state.dart';
 import 'theme.dart';
 import 'ui/screens/connect_screen.dart';
@@ -17,6 +19,8 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // 先把液态玻璃着色器编译好，避免首帧闪一下假玻璃。
   await GlassShader.load();
+  // 预热 Kotlin 规则内核，设置页第一帧就能显示版本。
+  await warmCore();
   final store = await AppStore.load();
   final state = AppState(store);
   runApp(QqaApp(state: state));
@@ -132,7 +136,8 @@ class _ShellState extends State<Shell> {
       SettingsScreen(state: state),
     ];
 
-    final body = IndexedStack(index: _index, children: pages);
+    // 换页保留状态，只做淡入 + 微滑（IndexedStack 是硬切，没有过场）。
+    final body = PageSwitcher(index: _index, children: pages);
 
     if (wide) {
       return Scaffold(

@@ -94,10 +94,10 @@ const server = createServer((req, res) => {
       paused,
       usage: {
         calls,
-        totalTokens: 310_000 + polls * 137,
-        promptTokens: 45_600 + polls * 61,
+        totalTokens: 1_352_000_000 + polls * 137_000,
+        promptTokens: 45_600_000 + polls * 61_000,
         completionTokens: 842 + polls * 3,
-        cacheReadTokens: 264_000 + polls * 70,
+        cacheReadTokens: 1_264_000_000 + polls * 70_000,
       },
       cacheHitRate: 0.85,
       model: 'deepseek-flash',
@@ -159,6 +159,15 @@ const server = createServer((req, res) => {
         { type: 'text', text: '收到，我看一下。' },
         { type: 'text', text: '已经处理完了，结果在上面。' },
       ],
+      rounds: 3,
+      toolCalls: 2,
+      model: 'deepseek-flash',
+      usage: {
+        totalTokens: 1_352_000_000 + polls * 137_000,
+        promptTokens: 45_600_000 + polls * 61_000,
+        completionTokens: 842 + polls * 3,
+        cacheReadTokens: 1_264_000_000 + polls * 70_000,
+      },
     });
   }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../state/app_state.dart';
 import '../widgets.dart';
+import '../../design/motion.dart';
 import '../../core/tokens_fmt.dart';
 
 /// 总览 — status hero, the four counters, usage, and the shortcut strip.
@@ -23,6 +24,71 @@ class OverviewScreen extends StatelessWidget {
     final botLabel = labels['botLabel'] ?? 'DSH 未运行';
     final online = labels['accent'] == 'ok';
 
+    // 顶层分区按顺序错峰进场：第一屏读起来有层次，而不是一坨同时亮。
+    final sections = <Widget>[
+      _TopBar(state: state),
+      const SizedBox(height: GlassGap.md),
+      HeroCard(
+        title: state.account.label,
+        connectionLabel: '$connection',
+        online: online,
+        botLabel: '$botLabel',
+        botOnline: online,
+        chips: [
+          Chip2(
+            text: state.account.origin.replaceFirst('https://', ''),
+            icon: Icons.link_rounded,
+          ),
+          if (state.status.botNickname.isNotEmpty)
+            Chip2(
+              text: state.status.botNickname,
+              icon: Icons.smart_toy_rounded,
+            ),
+          if (state.status.model.isNotEmpty)
+            Chip2(
+              text: state.status.model,
+              icon: Icons.memory_rounded,
+              color: ramp.accentDeep,
+            ),
+        ],
+        footnote: '最近更新 ${relativeTime(state.lastUpdated)} · '
+            '每 ${state.refreshSeconds} 秒轮询',
+        onRefresh: state.refreshStatus,
+      ),
+      if (state.statusError != null) ...[
+        const SizedBox(height: GlassGap.sm),
+        _ErrorBar(message: state.statusError!),
+      ],
+      const SizedBox(height: GlassGap.sm),
+      MetricCard(children: [
+        Tile(
+          label: '已收消息',
+          value: '${labels['calls'] ?? '—'}',
+          hint: '本轮调用次数',
+        ),
+        Tile(
+          label: '已回复',
+          value: state.status.paused ? '暂停' : '${state.repliedCount}',
+          hint: '${state.sessions.length} 条会话',
+          valueColor: ramp.accent,
+        ),
+        Tile(
+          label: '未回复',
+          value: '${state.filteredCount}',
+          hint: '规则命中 / 跳过',
+        ),
+        Tile(
+          label: '进行中',
+          value: '${state.runningCount}',
+          hint: state.runningCount > 0 ? '正在处理' : '发送正常',
+        ),
+      ]),
+      const SizedBox(height: GlassGap.sm),
+      _UsageCard(state: state),
+      const SizedBox(height: GlassGap.sm),
+      _QuickStrip(onNavigate: onNavigate),
+    ];
+
     return RefreshIndicator(
       color: ramp.accent,
       backgroundColor: ramp.page,
@@ -31,67 +97,8 @@ class OverviewScreen extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(
             GlassGap.pageH, 12, GlassGap.pageH, GlassGap.dockInset),
         children: [
-          _TopBar(state: state),
-          const SizedBox(height: GlassGap.md),
-          HeroCard(
-            title: state.account.label,
-            connectionLabel: '$connection',
-            online: online,
-            botLabel: '$botLabel',
-            botOnline: online,
-            chips: [
-              Chip2(
-                text: state.account.origin.replaceFirst('https://', ''),
-                icon: Icons.link_rounded,
-              ),
-              if (state.status.botNickname.isNotEmpty)
-                Chip2(
-                  text: state.status.botNickname,
-                  icon: Icons.smart_toy_rounded,
-                ),
-              if (state.status.model.isNotEmpty)
-                Chip2(
-                  text: state.status.model,
-                  icon: Icons.memory_rounded,
-                  color: ramp.accentDeep,
-                ),
-            ],
-            footnote: '最近更新 ${relativeTime(state.lastUpdated)} · '
-                '每 ${state.refreshSeconds} 秒轮询',
-            onRefresh: state.refreshStatus,
-          ),
-          if (state.statusError != null) ...[
-            const SizedBox(height: GlassGap.sm),
-            _ErrorBar(message: state.statusError!),
-          ],
-          const SizedBox(height: GlassGap.sm),
-          MetricCard(children: [
-            Tile(
-              label: '已收消息',
-              value: '${labels['calls'] ?? '—'}',
-              hint: '本轮调用次数',
-            ),
-            Tile(
-              label: '已回复',
-              value: state.status.paused ? '暂停' : '${state.repliedCount}',
-              hint: '${state.sessions.length} 条会话',
-              valueColor: ramp.accent,
-            ),
-            Tile(
-              label: '未回复',
-              value: '${state.filteredCount}',
-              hint: '规则命中 / 跳过',
-            ),
-            Tile(
-              label: '进行中',
-              value: '${state.runningCount}',
-              hint: state.runningCount > 0 ? '正在处理' : '发送正常',
-            ),
-          ]),
-          const SizedBox(height: GlassGap.sm),
-          _UsageCard(state: state),
-          const SizedBox(height: GlassGap.sm),
-          _QuickStrip(onNavigate: onNavigate),
+          for (var i = 0; i < sections.length; i++)
+            StaggerIn(index: i, child: sections[i]),
         ],
       ),
     );

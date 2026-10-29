@@ -1,59 +1,46 @@
-# Flutter / Dart
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The .vscode folder contains launch configuration and tasks you configure in
+# VS Code which you may wish to be included in version control, so this line
+# is commented out by default.
+#.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
 .dart_tool/
-.packages
+.flutter-plugins-dependencies
 .pub-cache/
 .pub/
-build/
-.flutter-plugins
-.flutter-plugins-dependencies
-*.iml
-.idea/
-.vscode/
+/build/
+/coverage/
 
-# Android
-android/.gradle/
-android/local.properties
-android/app/build/
-android/.kotlin/
-android/key.properties
-*.jks
-*.keystore
-!android/app/src/main/res/**/*.png
+# Symbolication related
+app.*.symbols
 
-# Rust
-rust/target/
-rust/Cargo.lock.bak
-target/
+# Obfuscation related
+app.*.map.json
 
-# 本地产物
-dist/
-.tmp/
-*.apk
-*.aab
-
-# 日志与抓包
-*.log
-tools/*.log
-tools/*.json
-tools/*.xml
-tools/*v.png
-tools/f*.png
-tools/g*.png
-tools/r*.png
-tools/u*.xml
-tools/w*.png
-tools/tab-*.png
-tools/run-*.png
-tools/v*.png
-tools/contact-sheet.png
-tools/real-contact-sheet.png
-!tools/d-*.png
-!tools/mock-qqa.mjs
-!tools/build-rust.sh
-
-# 系统
-.DS_Store
-Thumbs.db
-
-# Prebuilt Rust artifacts (run tools/build-rust.sh)
-android/app/src/main/jniLibs/
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+dist

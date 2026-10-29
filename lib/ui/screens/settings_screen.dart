@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../core/ffi.dart';
+import '../../core/core.dart';
 import '../../core/tokens_fmt.dart';
 import '../../core/version.dart';
 import '../../state/app_state.dart';
 import '../widgets.dart';
+import '../../design/motion.dart';
 import 'connect_screen.dart';
 
 /// 设置页 —— 排版完全对齐 SleepDown-Schedule 的设置根页：
@@ -44,7 +45,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             _AppRow(
               version: appVersion,
-              subtitle: 'Rust 规则内核 · Flutter 液态玻璃界面',
+              subtitle: 'Kotlin 规则内核 · Flutter 液态玻璃界面',
             ),
           ],
         ),
@@ -330,7 +331,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 8),
           Text(
             '界面风格与液态玻璃着色器移植自 SleepDown-Schedule'
-            '（Kyant Backdrop 2.0，Apache-2.0）；规则内核为 Rust，界面为 Flutter。',
+            '（Kyant Backdrop 2.0，Apache-2.0）；规则内核为 Kotlin，界面为 Flutter。',
             style: GlassText.caption
                 .copyWith(color: ramp.contentMuted, height: 1.55),
           ),
@@ -408,20 +409,29 @@ class _Group extends StatelessWidget {
     final ramp = GlassScope.rampOf(context);
     final rows = <Widget>[];
     for (var i = 0; i < children.length; i++) {
+      // 每一行比上一行晚 40ms 淡入上移，分组卡整体像被「铺」出来。
       if (i > 0) {
-        rows.add(Padding(
-          padding: const EdgeInsets.only(left: 56),
-          child: Container(height: 1, color: ramp.hairline),
+        rows.add(StaggerIn(
+          index: i,
+          step: 40,
+          offset: 8,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 56),
+            child: Container(height: 1, color: ramp.hairline),
+          ),
         ));
       }
-      rows.add(children[i]);
+      rows.add(StaggerIn(index: i, step: 40, offset: 8, child: children[i]));
     }
 
-    return GlassPanel(
-      radius: GlassRadius.inner,
-      padding: EdgeInsets.zero,
-      tint: ramp.panelTint + 0.06,
-      child: Column(children: rows),
+    return FadeSlideIn(
+      offset: 10,
+      child: GlassPanel(
+        radius: GlassRadius.inner,
+        padding: EdgeInsets.zero,
+        tint: ramp.panelTint + 0.06,
+        child: Column(children: rows),
+      ),
     );
   }
 }

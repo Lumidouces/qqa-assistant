@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'ffi.dart';
+import 'core.dart';
 import 'tokens_fmt.dart';
 
 /// One saved PC connection. The original app had two fixed slots ("账号1"));
@@ -129,7 +129,7 @@ class AppStore {
 
   /// Validate then persist an origin typed by the user.
   Future<Account> connect(int slot, String typed, {String name = ''}) async {
-    final normalized = normalizeOrigin(typed);
+    final normalized = await normalizeOrigin(typed);
     final account = Account(slot: slot, origin: normalized, name: name);
     await saveAccount(account);
     await setActiveSlot(slot);
