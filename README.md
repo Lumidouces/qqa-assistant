@@ -4,8 +4,28 @@
 界面按深色 OLED + 绿色强调的视觉稿重做，底层换成 Rust 核心 + Flutter UI。
 
 - 包名：`cn.local.qqa.qqa_assistant`（与原版一致，可覆盖安装需先卸载，签名不同）
-- 版本：1.2.2
-- 产物：`dist/QQA-Assistant-RustFlutter-arm64-v1.2.2.apk`（19.9 MB，arm64-v8a）
+- 版本：1.3.0
+- 产物：`dist/QQA-Assistant-RustFlutter-arm64-v1.3.0.apk`（19.9 MB，arm64-v8a）
+
+### 1.3.0 变更（设置页对齐 SleepDown + 液态玻璃标签栏）
+
+排版与动效整体对齐 `Lumidouces/SleepDown-Schedule`（Apache-2.0 上游视觉语言复刻）：
+
+- **设置页重排**：`_PageTitle` 大标题 → 应用卡（56 圆角渐变图标 + 名称 + 副标题 + 右侧版本号）→
+  分组小标题（应用 / 刷新 / 外观 / 其他）+ 24 圆角分组卡 + 行内 1px hairline（左缩进 56）+
+  每行 23dp 彩色图标 + 标题/副标题 + 右侧值/开关/箭头。行高级度与上游 `SettingsRows` 一致。
+- **底部标签栏换成液态玻璃**：新增 `lib/design/liquid_tabs.dart` 的 `LiquidTabBar`，
+  替换原 `GlassDock`。语义照搬上游 `HomeDockTabs` / `LiquidBottomTabs`：
+  - 跟手拖动 + 落格：`AnimationController.unbounded` + `SpringSimulation`
+    （`SpringDescription.withDampingRatio(mass: 1, stiffness: 1000, ratio: 1)`）
+  - 按下缩放 78 → 56（与上游 `DampedDragAnimation` 同值）
+  - 指示器宽度溢出 8 / 高度溢出 4，透镜高 12 / 强度 17（`indicatorWidthOverflow` 等常量逐项对齐）
+  - 容器高 54、指示器高 46、容器透明度 dark 0.45 / light 0.54
+  - `_HighlightPainter` 径向光斑：highlight 0.07 / shadow 0.05 / innerShadow 0.08，
+    chromaticAberration 开关保留
+- 修掉设置页「当前连接」行 subtitle 与右侧值重复显示同一个域名的老问题（右侧改「已连接 / 未配置」）。
+- 修掉一个材质坑：把 `highlightAlpha`/`shadowAlpha` 传成 1 时，暗色主题下整条胶囊被顶缘反光刷成白板，
+  已按上游 0.07/0.05/0.08 回落。
 
 ### 1.2.2 变更（修 ABI：真机装不上）
 

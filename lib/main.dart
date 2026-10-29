@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import 'core/store.dart';
 import 'design/glass.dart';
+import 'design/liquid_tabs.dart';
 import 'state/app_state.dart';
 import 'theme.dart';
 import 'ui/screens/connect_screen.dart';
@@ -177,9 +178,11 @@ class _ShellState extends State<Shell> {
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 6),
-        child: GlassDock(
-          labels: [for (final tab in _tabs) tab.label],
-          icons: [for (final tab in _tabs) tab.icon],
+        child: LiquidTabBar(
+          tabs: [
+            for (final tab in _tabs)
+              LiquidTabSpec(icon: tab.icon, label: tab.label),
+          ],
           index: _index,
           onSelect: _select,
         ),

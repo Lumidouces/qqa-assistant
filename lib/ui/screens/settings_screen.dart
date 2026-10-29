@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
 
 import '../../core/ffi.dart';
+import '../../core/tokens_fmt.dart';
+import '../../core/version.dart';
 import '../../state/app_state.dart';
 import '../widgets.dart';
 import 'connect_screen.dart';
-import '../../core/tokens_fmt.dart';
-import '../../core/version.dart';
 
-/// 设置页 —— 对齐 SleepDown 的分段多标签结构：
+/// 设置页 —— 排版完全对齐 SleepDown-Schedule 的设置根页：
 ///
-///   1. 顶部是一张「软件介绍」卡（名称 / 版本 / 一句话 / 运行状态胶囊）；
-///   2. 下面是液态玻璃胶囊标签栏（连接 · 刷新 · 外观 · 关于）；
-///   3. 每个标签只放它自己的设置块，切页有淡入 + 轻微上浮动画。
+///   1. 顶部一个大的「设置」标题（上游 TopAppBar 的 largeTitle）；
+///   2. 第一组是一张应用卡：56 圆角图标 + 应用名 + 右侧版本号；
+///   3. 下面按「应用 / 连接 / 刷新 / 外观 / 其他」分组，每组上方一行
+///      小号灰色分组标题，组内是 24 圆角卡片，行与行之间 1px 发丝线；
+///   4. 每行结构固定：左侧 23dp 彩色图标 → 标题 + 副标题 → 右侧值 / 开关 / 箭头。
+///
+/// 数值与尺寸取自上游 `SettingsRootScreen.kt` 与 `SettingsRows.kt`。
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key, required this.state});
 
@@ -22,337 +26,183 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  static const _tabs = <({String label, IconData icon})>[
-    (label: '连接', icon: Icons.link_rounded),
-    (label: '刷新', icon: Icons.refresh_rounded),
-    (label: '外观', icon: Icons.palette_rounded),
-    (label: '关于', icon: Icons.info_rounded),
-  ];
-
-  int _index = 0;
-
   AppState get state => widget.state;
 
-  void _select(int index) {
-    if (index == _index) return;
-    setState(() => _index = index);
-  }
-
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(
-          GlassGap.pageH, 12, GlassGap.pageH, GlassGap.dockInset),
-      children: [
-        _IntroCard(state: state),
-        const SizedBox(height: GlassGap.lg),
-        _TabBar(
-          labels: [for (final tab in _tabs) tab.label],
-          icons: [for (final tab in _tabs) tab.icon],
-          index: _index,
-          onSelect: _select,
-        ),
-        const SizedBox(height: GlassGap.lg),
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 260),
-          switchInCurve: Curves.easeOutCubic,
-          switchOutCurve: Curves.easeInCubic,
-          transitionBuilder: (child, animation) => FadeTransition(
-            opacity: animation,
-            child: SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(0, 0.035),
-                end: Offset.zero,
-              ).animate(animation),
-              child: child,
-            ),
-          ),
-          child: KeyedSubtree(
-            key: ValueKey<int>(_index),
-            child: switch (_index) {
-              0 => _ConnectionTab(state: state),
-              1 => _RefreshTab(state: state),
-              2 => _AppearanceTab(state: state),
-              _ => const _AboutTab(),
-            },
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// 顶部：软件介绍
-// ---------------------------------------------------------------------------
-
-class _IntroCard extends StatelessWidget {
-  const _IntroCard({required this.state});
-
-  final AppState state;
-
-  @override
-  Widget build(BuildContext context) {
-    final ramp = GlassScope.rampOf(context);
-    final online = state.statusError == null && state.account.configured;
-
-    return GlassPanel(
-      radius: GlassRadius.panel,
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 17),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(15),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      ramp.accent,
-                      ramp.accentDeep,
-                    ],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: ramp.accent.withValues(alpha: 0.35),
-                      blurRadius: 18,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: const Icon(Icons.auto_awesome_rounded,
-                    size: 23, color: Colors.white),
-              ),
-              const SizedBox(width: 13),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('QQA 助手',
-                        style: GlassText.title.copyWith(
-                          color: ramp.content,
-                          fontSize: 19,
-                          fontWeight: FontWeight.w700,
-                        )),
-                    const SizedBox(height: 3),
-                    Text('Rust 规则内核 · Flutter 液态玻璃界面',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style:
-                            GlassText.caption.copyWith(color: ramp.contentFaint)),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              GlassChip(
-                text: online ? '在线' : '未连接',
-                dotColor: online ? const Color(0xFF30D158) : ramp.contentFaint,
-                dense: true,
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Text(
-            '把服务器上跑的 QQA 控制台装进口袋：会话、过程、存档、一键操作都在这一屏里。',
-            style: GlassText.caption.copyWith(
-              color: ramp.contentMuted,
-              height: 1.55,
-            ),
-          ),
-          const SizedBox(height: 13),
-          Wrap(
-            spacing: 7,
-            runSpacing: 7,
-            children: [
-              GlassChip(text: _versionLabel(), icon: Icons.memory_rounded, dense: true),
-              GlassChip(text: 'v$appVersion', icon: Icons.sell_rounded, dense: true),
-              GlassChip(
-                text: state.account.configured
-                    ? state.account.label
-                    : '未配置地址',
-                icon: Icons.dns_rounded,
-                dense: true,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _versionLabel() {
-    try {
-      return coreStatus();
-    } catch (_) {
-      return 'qqa_core 未加载';
-    }
-  }
-}
-
-// ---------------------------------------------------------------------------
-// 分段标签栏
-// ---------------------------------------------------------------------------
-
-class _TabBar extends StatelessWidget {
-  const _TabBar({
-    required this.labels,
-    required this.icons,
-    required this.index,
-    required this.onSelect,
-  });
-
-  final List<String> labels;
-  final List<IconData> icons;
-  final int index;
-  final ValueChanged<int> onSelect;
-
-  @override
-  Widget build(BuildContext context) {
-    final ramp = GlassScope.rampOf(context);
-    return GlassChrome(
-      radius: GlassRadius.pill,
-      padding: const EdgeInsets.all(5),
-      child: Row(
-        children: [
-          for (var i = 0; i < labels.length; i++)
-            Expanded(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => onSelect(i),
-                child: AnimatedContainer(
-                  duration: GlassMotion.base,
-                  curve: GlassMotion.curve,
-                  padding: const EdgeInsets.symmetric(vertical: 9),
-                  decoration: BoxDecoration(
-                    color: i == index
-                        ? ramp.accent.withValues(alpha: 0.16)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(GlassRadius.pill),
-                    border: Border.all(
-                      color: i == index
-                          ? ramp.accent.withValues(alpha: 0.42)
-                          : Colors.transparent,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        icons[i],
-                        size: 15,
-                        color: i == index ? ramp.accent : ramp.contentMuted,
-                      ),
-                      const SizedBox(width: 5),
-                      Flexible(
-                        child: Text(
-                          labels[i],
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: GlassText.label.copyWith(
-                            color:
-                                i == index ? ramp.accent : ramp.contentMuted,
-                            fontWeight: i == index
-                                ? FontWeight.w700
-                                : FontWeight.w500,
-                            fontSize: 12.5,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// 标签页内容
-// ---------------------------------------------------------------------------
-
-class _ConnectionTab extends StatelessWidget {
-  const _ConnectionTab({required this.state});
-
-  final AppState state;
-
-  @override
-  Widget build(BuildContext context) {
-    final ramp = GlassScope.rampOf(context);
     final store = state.store;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(
+          16, 8, 16, GlassGap.dockInset),
       children: [
-        const GlassSectionHeader(title: '当前连接', subtitle: '这台手机连的是哪台机器'),
-        GlassPanel(
-          radius: GlassRadius.panel,
-          padding: const EdgeInsets.fromLTRB(16, 15, 16, 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(state.account.label,
-                        style: GlassText.body.copyWith(
-                            color: ramp.content,
-                            fontWeight: FontWeight.w600)),
-                  ),
-                  GlassChip(
-                    text: '槽位 ${store.activeSlot + 1}',
-                    dense: true,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Text(state.account.origin,
-                  style: GlassText.mono.copyWith(color: ramp.contentFaint),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Expanded(
-                    child: GhostButton(
-                      label: '更换地址',
-                      icon: Icons.edit_rounded,
-                      onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => ConnectScreen(
-                              state: state, slotOverride: state.account.slot),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: GhostButton(
-                      label: '账号槽位',
-                      icon: Icons.sync_alt_rounded,
-                      onPressed: () => _showSlots(context),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+        const _PageTitle('设置'),
+        const SizedBox(height: 12),
+
+        // ---- 应用卡 ----
+        _Group(
+          children: [
+            _AppRow(
+              version: appVersion,
+              subtitle: 'Rust 规则内核 · Flutter 液态玻璃界面',
+            ),
+          ],
         ),
-        const SizedBox(height: 20),
-        const GlassSectionHeader(title: '会话', subtitle: '断开后需要重新填地址'),
-        _DangerRow(
-          title: '断开当前连接',
-          subtitle: '只清掉这台手机上保存的地址，不影响服务器',
-          icon: Icons.link_off_rounded,
-          onTap: state.account.configured ? state.disconnectActive : null,
+
+        const SizedBox(height: 12),
+
+        // ---- 应用 ----
+        _SectionLabel('应用'),
+        _Group(
+          children: [
+            _Row(
+              icon: Icons.link_rounded,
+              tint: const Color(0xFF0A84FF),
+              title: '当前连接',
+              subtitle: state.account.configured
+                  ? state.account.origin
+                  : '尚未配置控制台地址',
+              trailing: _Value(
+                  state.account.configured ? '已连接' : '未配置'),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => ConnectScreen(
+                      state: state, slotOverride: state.account.slot),
+                ),
+              ),
+            ),
+            _Row(
+              icon: Icons.swap_horiz_rounded,
+              tint: const Color(0xFF34C759),
+              title: '账号槽位',
+              subtitle: '两个槽位各存一份地址，切换即时生效',
+              trailing: _Value('槽位 ${store.activeSlot + 1}'),
+              onTap: () => _showSlots(context),
+            ),
+            _Row(
+              icon: Icons.link_off_rounded,
+              tint: const Color(0xFFE5484D),
+              title: '断开当前连接',
+              subtitle: '只清掉这台手机上保存的地址，不影响服务器',
+              danger: true,
+              onTap: state.account.configured
+                  ? () => state.disconnectActive()
+                  : null,
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 12),
+
+        // ---- 刷新 ----
+        _SectionLabel('刷新'),
+        _Group(
+          children: [
+            _SliderRow(
+              icon: Icons.timer_outlined,
+              tint: const Color(0xFF5856D6),
+              title: '自动刷新间隔',
+              subtitle: '状态每 ${store.refreshSeconds} 秒拉一次，'
+                  '列表每 ${store.refreshSeconds * 2} 秒拉一次',
+              value: '${store.refreshSeconds} 秒',
+              current: store.refreshSeconds.toDouble(),
+              min: 5,
+              max: 120,
+              divisions: 23,
+              onChanged: (v) => state.setRefreshSeconds(v.round()),
+            ),
+            _SliderRow(
+              icon: Icons.forum_outlined,
+              tint: const Color(0xFF00A9C7),
+              title: '会话列表条数',
+              subtitle: '越大越慢，但看得更全',
+              value: '${store.sessionLimit} 条',
+              current: store.sessionLimit.toDouble(),
+              min: 10,
+              max: 200,
+              divisions: 19,
+              onChanged: (v) => store.setSessionLimit(v.round()),
+            ),
+            _SliderRow(
+              icon: Icons.chat_bubble_outline_rounded,
+              tint: const Color(0xFFAF52DE),
+              title: '单会话消息条数',
+              subtitle: '进入会话时最多取多少条',
+              value: '${store.messageLimit} 条',
+              current: store.messageLimit.toDouble(),
+              min: 20,
+              max: 300,
+              divisions: 28,
+              onChanged: (v) => store.setMessageLimit(v.round()),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 12),
+
+        // ---- 外观 ----
+        _SectionLabel('外观'),
+        _Group(
+          children: [
+            _SwitchRow(
+              icon: Icons.dark_mode_outlined,
+              tint: const Color(0xFF0A84FF),
+              title: '深色模式',
+              subtitle: '深色下玻璃折射更明显，也更省电',
+              value: store.darkMode,
+              onChanged: state.setDarkMode,
+            ),
+            _SliderRow(
+              icon: Icons.format_size_rounded,
+              tint: const Color(0xFFFF9500),
+              title: '字体大小',
+              subtitle: '整体按比例缩放',
+              value: '${store.fontPercent}%',
+              current: store.fontPercent.toDouble(),
+              min: 85,
+              max: 160,
+              divisions: 15,
+              onChanged: (v) => state.setFontPercent(v.round()),
+            ),
+            _ChoiceRow(
+              icon: Icons.straighten_rounded,
+              tint: const Color(0xFF34C759),
+              title: '数字单位',
+              subtitle: '例：${formatTokens(13146300, scale: store.tokenScale)} · '
+                  '${formatTokens(1314630000, scale: store.tokenScale)}',
+              options: const [
+                (TokenScale.auto, '自动'),
+                (TokenScale.mega, 'M'),
+                (TokenScale.kilo, 'k'),
+              ],
+              selected: store.tokenScale,
+              onSelect: state.setTokenScale,
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 12),
+
+        // ---- 其他 ----
+        _SectionLabel('其他'),
+        _Group(
+          children: [
+            _Row(
+              icon: Icons.info_outline_rounded,
+              tint: const Color(0xFF8A90A0),
+              title: '版本信息',
+              subtitle: '规则内核 ${_safeCore()}',
+              trailing: _Value(appVersionFull),
+              onTap: () => _showAbout(context),
+            ),
+            _Row(
+              icon: Icons.favorite_rounded,
+              tint: const Color(0xFFFF2D55),
+              title: '致谢',
+              subtitle: 'SleepDown-Schedule · Kyant Backdrop 2.0',
+              onTap: () => _showCredits(context),
+            ),
+          ],
         ),
       ],
     );
@@ -418,203 +268,74 @@ class _ConnectionTab extends StatelessWidget {
       ),
     );
   }
-}
 
-class _RefreshTab extends StatelessWidget {
-  const _RefreshTab({required this.state});
-
-  final AppState state;
-
-  @override
-  Widget build(BuildContext context) {
-    final store = state.store;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const GlassSectionHeader(title: '轮询节奏', subtitle: '多久问一次电脑'),
-        _SliderRow(
-          label: '自动刷新间隔',
-          value: '${store.refreshSeconds} 秒',
-          current: store.refreshSeconds.toDouble(),
-          min: 5,
-          max: 120,
-          divisions: 23,
-          onChanged: (value) => state.setRefreshSeconds(value.round()),
-        ),
-        const SizedBox(height: 20),
-        const GlassSectionHeader(title: '拉取数量', subtitle: '越大越慢，但看得更全'),
-        _SliderRow(
-          label: '会话列表条数',
-          value: '${store.sessionLimit} 条',
-          current: store.sessionLimit.toDouble(),
-          min: 10,
-          max: 200,
-          divisions: 19,
-          onChanged: (value) => store.setSessionLimit(value.round()),
-        ),
-        _SliderRow(
-          label: '单会话消息条数',
-          value: '${store.messageLimit} 条',
-          current: store.messageLimit.toDouble(),
-          min: 20,
-          max: 300,
-          divisions: 28,
-          onChanged: (value) => store.setMessageLimit(value.round()),
-        ),
-        const SizedBox(height: 16),
-        GlassPanel(
-          radius: GlassRadius.chip,
-          padding: const EdgeInsets.fromLTRB(15, 13, 15, 13),
-          child: Row(
-            children: [
-              Icon(Icons.timer_outlined, size: 17, color: GlassScope.rampOf(context).accent),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  '状态每 ${store.refreshSeconds} 秒拉一次，列表每 ${store.refreshSeconds * 2} 秒拉一次。',
-                  style: GlassText.caption.copyWith(
-                      color: GlassScope.rampOf(context).contentMuted,
-                      height: 1.5),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _AppearanceTab extends StatelessWidget {
-  const _AppearanceTab({required this.state});
-
-  final AppState state;
-
-  @override
-  Widget build(BuildContext context) {
-    final store = state.store;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const GlassSectionHeader(title: '主题', subtitle: '液态玻璃的明暗底'),
-        SettingSwitch(
-          title: '深色模式',
-          subtitle: '深色下玻璃折射更明显，也更省电',
-          value: store.darkMode,
-          onChanged: state.setDarkMode,
-        ),
-        const SizedBox(height: 20),
-        const GlassSectionHeader(title: '排版'),
-        _SliderRow(
-          label: '字体大小',
-          value: '${store.fontPercent}%',
-          current: store.fontPercent.toDouble(),
-          min: 85,
-          max: 160,
-          divisions: 15,
-          onChanged: (value) => state.setFontPercent(value.round()),
-        ),
-        const SizedBox(height: 20),
-        const GlassSectionHeader(title: '数字单位', subtitle: '大数字怎么缩写'),
-        Row(
-          children: [
-            for (final scale in TokenScale.values)
-              Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: GestureDetector(
-                  onTap: () => state.setTokenScale(scale),
-                  behavior: HitTestBehavior.opaque,
-                  child: GlassChip(
-                    text: switch (scale) {
-                      TokenScale.auto => '自动（M / B）',
-                      TokenScale.mega => '固定 M',
-                      TokenScale.kilo => '固定 k',
-                    },
-                    dense: true,
-                    color: store.tokenScale == scale
-                        ? GlassScope.rampOf(context).accent
-                        : GlassScope.rampOf(context).contentMuted,
-                  ),
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Text(
-          '例：${formatTokens(13146300, scale: store.tokenScale)} · '
-          '${formatTokens(1314630000, scale: store.tokenScale)}',
-          style: GlassText.mono
-              .copyWith(color: GlassScope.rampOf(context).contentFaint),
-        ),
-      ],
-    );
-  }
-}
-
-class _AboutTab extends StatelessWidget {
-  const _AboutTab();
-
-  @override
-  Widget build(BuildContext context) {
+  Future<void> _showAbout(BuildContext context) async {
     final ramp = GlassScope.rampOf(context);
     final rows = <({String label, String value})>[
       (label: '应用版本', value: appVersionFull),
       (label: '规则内核', value: _safeCore()),
-      (label: '界面', value: 'Flutter 3.35 · Impeller'),
+      (label: '界面', value: 'Flutter · Impeller'),
       (label: '玻璃材质', value: 'Kyant Backdrop 2.0 移植'),
       (label: '协议', value: 'HTTP · QQA 控制台'),
     ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const GlassSectionHeader(title: '版本信息'),
-        GlassPanel(
-          radius: GlassRadius.panel,
-          padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
-          child: Column(
-            children: [
-              for (var i = 0; i < rows.length; i++) ...[
-                if (i > 0) GlassDivider(),
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 11),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(rows[i].label,
-                            style: GlassText.body
-                                .copyWith(color: ramp.contentMuted)),
-                      ),
-                      const SizedBox(width: 12),
-                      Flexible(
-                        child: Text(
-                          rows[i].value,
-                          textAlign: TextAlign.right,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: GlassText.mono.copyWith(color: ramp.content),
-                        ),
-                      ),
-                    ],
+    await showGlassSheet<void>(
+      context: context,
+      builder: (sheetContext) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('版本信息',
+              style: GlassText.title.copyWith(color: ramp.content)),
+          const SizedBox(height: 12),
+          for (var i = 0; i < rows.length; i++) ...[
+            if (i > 0) const SizedBox(height: 1),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 9),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(rows[i].label,
+                        style: GlassText.body
+                            .copyWith(color: ramp.contentMuted)),
                   ),
-                ),
-              ],
-            ],
-          ),
-        ),
-        const SizedBox(height: 20),
-        const GlassSectionHeader(title: '致谢'),
-        GlassPanel(
-          radius: GlassRadius.chip,
-          padding: const EdgeInsets.fromLTRB(15, 14, 15, 14),
-          child: Text(
-            '界面风格与液态玻璃着色器移植自 SleepDown-Schedule（Kyant Backdrop 2.0，Apache-2.0）；'
-            '规则内核为 Rust，UI 为 Flutter。',
+                  const SizedBox(width: 12),
+                  Flexible(
+                    child: Text(
+                      rows[i].value,
+                      textAlign: TextAlign.right,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GlassText.mono.copyWith(color: ramp.content),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showCredits(BuildContext context) async {
+    final ramp = GlassScope.rampOf(context);
+    await showGlassSheet<void>(
+      context: context,
+      builder: (sheetContext) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('致谢',
+              style: GlassText.title.copyWith(color: ramp.content)),
+          const SizedBox(height: 8),
+          Text(
+            '界面风格与液态玻璃着色器移植自 SleepDown-Schedule'
+            '（Kyant Backdrop 2.0，Apache-2.0）；规则内核为 Rust，界面为 Flutter。',
             style: GlassText.caption
                 .copyWith(color: ramp.contentMuted, height: 1.55),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -628,51 +349,241 @@ class _AboutTab extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// 行组件
+// 排版骨架（对齐 SettingsRootScreen.kt / SettingsGroups.kt）
 // ---------------------------------------------------------------------------
 
-class _DangerRow extends StatelessWidget {
-  const _DangerRow({
-    required this.title,
-    required this.subtitle,
+/// 页面大标题：上游 `TopAppBar(largeTitle = ...)`，30sp 粗体、左对齐。
+class _PageTitle extends StatelessWidget {
+  const _PageTitle(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, top: 8, bottom: 4),
+      child: Text(
+        text,
+        style: GlassText.display.copyWith(
+          color: GlassScope.rampOf(context).content,
+          fontSize: 30,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+/// 分组标题：上游 `GlassPreferenceCategory`（MiuixSmallTitle），
+/// 左侧 6、上下 8，灰色小字。
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(6, 8, 6, 8),
+      child: Text(
+        text,
+        style: GlassText.label.copyWith(
+          color: GlassScope.rampOf(context).contentMuted,
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+}
+
+/// 分组卡片：上游 `SettingsGroup`，圆角 24，内部行不额外加间距。
+class _Group extends StatelessWidget {
+  const _Group({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final ramp = GlassScope.rampOf(context);
+    final rows = <Widget>[];
+    for (var i = 0; i < children.length; i++) {
+      if (i > 0) {
+        rows.add(Padding(
+          padding: const EdgeInsets.only(left: 56),
+          child: Container(height: 1, color: ramp.hairline),
+        ));
+      }
+      rows.add(children[i]);
+    }
+
+    return GlassPanel(
+      radius: GlassRadius.inner,
+      padding: EdgeInsets.zero,
+      tint: ramp.panelTint + 0.06,
+      child: Column(children: rows),
+    );
+  }
+}
+
+/// 行尾的灰色数值。
+class _Value extends StatelessWidget {
+  const _Value(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: GlassText.caption.copyWith(
+        color: GlassScope.rampOf(context).contentFaint,
+      ),
+    );
+  }
+}
+
+/// 基础行：23dp 彩色图标 + 标题/副标题 + 右侧内容。
+/// 对应上游 `SettingsNavigationRow`（MiuixArrowPreference）。
+class _Row extends StatelessWidget {
+  const _Row({
     required this.icon,
+    required this.tint,
+    required this.title,
+    this.subtitle,
+    this.trailing,
     this.onTap,
+    this.danger = false,
   });
 
-  final String title;
-  final String subtitle;
   final IconData icon;
+  final Color tint;
+  final String title;
+  final String? subtitle;
+  final Widget? trailing;
   final VoidCallback? onTap;
+  final bool danger;
 
   @override
   Widget build(BuildContext context) {
     final ramp = GlassScope.rampOf(context);
     final enabled = onTap != null;
-    const danger = Color(0xFFE5484D);
+    final color = danger ? const Color(0xFFE5484D) : ramp.content;
 
     return Opacity(
-      opacity: enabled ? 1 : 0.5,
-      child: GlassPanel(
-        radius: GlassRadius.chip,
-        padding: const EdgeInsets.fromLTRB(15, 13, 15, 13),
+      opacity: enabled || !danger ? 1 : 0.45,
+      child: InkWell(
         onTap: onTap,
+        borderRadius: BorderRadius.circular(GlassRadius.inner),
+        splashColor: ramp.accent.withValues(alpha: 0.06),
+        highlightColor: ramp.accent.withValues(alpha: 0.04),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          child: Row(
+            children: [
+              Icon(icon, size: 23, color: tint),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: GlassText.body.copyWith(
+                        color: color,
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle!,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: GlassText.caption
+                            .copyWith(color: ramp.contentFaint),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (trailing != null) ...[
+                const SizedBox(width: 10),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 130),
+                  child: trailing!,
+                ),
+              ],
+              const SizedBox(width: 6),
+              Icon(Icons.chevron_right_rounded,
+                  size: 20, color: ramp.contentFaint.withValues(alpha: 0.7)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 开关行：上游 `Miuix SwitchPreference`。
+class _SwitchRow extends StatelessWidget {
+  const _SwitchRow({
+    required this.icon,
+    required this.tint,
+    required this.title,
+    required this.value,
+    required this.onChanged,
+    this.subtitle,
+  });
+
+  final IconData icon;
+  final Color tint;
+  final String title;
+  final String? subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final ramp = GlassScope.rampOf(context);
+    return InkWell(
+      onTap: () => onChanged(!value),
+      borderRadius: BorderRadius.circular(GlassRadius.inner),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 11, 12, 11),
         child: Row(
           children: [
-            Icon(icon, size: 18, color: danger),
-            const SizedBox(width: 11),
+            Icon(icon, size: 23, color: tint),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(title,
                       style: GlassText.body.copyWith(
-                          color: danger, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 3),
-                  Text(subtitle,
-                      style:
-                          GlassText.caption.copyWith(color: ramp.contentFaint)),
+                          color: ramp.content,
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w600)),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 2),
+                    Text(subtitle!,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: GlassText.caption
+                            .copyWith(color: ramp.contentFaint)),
+                  ],
                 ],
               ),
+            ),
+            Switch(
+              value: value,
+              onChanged: onChanged,
+              activeThumbColor: Colors.white,
+              activeTrackColor: const Color(0xFF34C759),
+              inactiveTrackColor: ramp.content.withValues(alpha: 0.12),
             ),
           ],
         ),
@@ -681,18 +592,25 @@ class _DangerRow extends StatelessWidget {
   }
 }
 
+/// 滑杆行：上游设置里的 `SliderPreference`，数值用主题蓝显示在右侧。
 class _SliderRow extends StatelessWidget {
   const _SliderRow({
-    required this.label,
+    required this.icon,
+    required this.tint,
+    required this.title,
     required this.value,
     required this.current,
     required this.min,
     required this.max,
     required this.divisions,
     required this.onChanged,
+    this.subtitle,
   });
 
-  final String label;
+  final IconData icon;
+  final Color tint;
+  final String title;
+  final String? subtitle;
   final String value;
   final double current;
   final double min;
@@ -704,38 +622,215 @@ class _SliderRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final ramp = GlassScope.rampOf(context);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 9),
-      child: GlassPanel(
-        radius: GlassRadius.chip,
-        padding: const EdgeInsets.fromLTRB(15, 12, 15, 6),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+      padding: const EdgeInsets.fromLTRB(14, 11, 14, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 23, color: tint),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: GlassText.body.copyWith(
+                            color: ramp.content,
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w600)),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 2),
+                      Text(subtitle!,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: GlassText.caption
+                              .copyWith(color: ramp.contentFaint)),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(value,
+                  style: GlassText.caption.copyWith(
+                      color: ramp.accent, fontWeight: FontWeight.w600)),
+            ],
+          ),
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              activeTrackColor: ramp.accent,
+              inactiveTrackColor: ramp.hairline,
+              thumbColor: Colors.white,
+              overlayColor: ramp.accent.withValues(alpha: 0.12),
+              trackHeight: 3,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 9),
+            ),
+            child: Slider(
+              value: current.clamp(min, max),
+              min: min,
+              max: max,
+              divisions: divisions,
+              onChanged: onChanged,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 分段选择行：上游 `LiquidOptionTabs` 的紧凑版，右侧直接放胶囊选项。
+class _ChoiceRow<T> extends StatelessWidget {
+  const _ChoiceRow({
+    required this.icon,
+    required this.tint,
+    required this.title,
+    required this.options,
+    required this.selected,
+    required this.onSelect,
+    this.subtitle,
+  });
+
+  final IconData icon;
+  final Color tint;
+  final String title;
+  final String? subtitle;
+  final List<(T, String)> options;
+  final T selected;
+  final ValueChanged<T> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final ramp = GlassScope.rampOf(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      child: Row(
+        children: [
+          Icon(icon, size: 23, color: tint),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                    child: Text(label,
-                        style: GlassText.body.copyWith(color: ramp.content))),
-                Text(value,
-                    style: GlassText.mono.copyWith(color: ramp.contentFaint)),
+                Text(title,
+                    style: GlassText.body.copyWith(
+                        color: ramp.content,
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w600)),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 2),
+                  Text(subtitle!,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style:
+                          GlassText.caption.copyWith(color: ramp.contentFaint)),
+                ],
               ],
             ),
-            SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                activeTrackColor: ramp.accent,
-                inactiveTrackColor: ramp.hairline,
-                thumbColor: ramp.accent,
-                overlayColor: ramp.accent.withValues(alpha: 0.12),
-                trackHeight: 3,
-              ),
-              child: Slider(
-                value: current.clamp(min, max),
-                min: min,
-                max: max,
-                divisions: divisions,
-                onChanged: onChanged,
+          ),
+          const SizedBox(width: 8),
+          for (final option in options)
+            Padding(
+              padding: const EdgeInsets.only(left: 5),
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => onSelect(option.$1),
+                child: AnimatedContainer(
+                  duration: GlassMotion.fast,
+                  curve: GlassMotion.curve,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: selected == option.$1
+                        ? ramp.accent.withValues(alpha: 0.16)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(GlassRadius.pill),
+                    border: Border.all(
+                      color: selected == option.$1
+                          ? ramp.accent.withValues(alpha: 0.42)
+                          : ramp.hairline,
+                    ),
+                  ),
+                  child: Text(
+                    option.$2,
+                    style: GlassText.caption.copyWith(
+                      color: selected == option.$1
+                          ? ramp.accent
+                          : ramp.contentMuted,
+                      fontWeight: selected == option.$1
+                          ? FontWeight.w700
+                          : FontWeight.w500,
+                    ),
+                  ),
+                ),
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 应用卡：上游那个 56 圆角图标 + 应用名 + 版本号的行。
+class _AppRow extends StatelessWidget {
+  const _AppRow({required this.version, required this.subtitle});
+
+  final String version;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final ramp = GlassScope.rampOf(context);
+    return InkWell(
+      onTap: () {},
+      borderRadius: BorderRadius.circular(GlassRadius.inner),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+        child: Row(
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [ramp.accent, ramp.accentDeep],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: ramp.accent.withValues(alpha: 0.32),
+                    blurRadius: 18,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.auto_awesome_rounded,
+                  size: 27, color: Colors.white),
+            ),
+            const SizedBox(width: 13),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('QQA 助手',
+                      style: GlassText.title.copyWith(
+                          color: ramp.content,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 3),
+                  Text(subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GlassText.caption
+                          .copyWith(color: ramp.contentFaint)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text('版本 $version',
+                style: GlassText.caption.copyWith(color: ramp.contentMuted)),
           ],
         ),
       ),
