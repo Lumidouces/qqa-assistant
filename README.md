@@ -103,6 +103,23 @@ App 只接受 `https:` 地址，所以本机 mock 必须经隧道或自签证书
 `d-events.png` / `d-chat.png` / `d-tools.png` / `d-paused.png` / `d-settings.png`。
 `pause` 真打接口验证：点「暂停」后 `GET /api/status` 返回 `paused: true`，恢复后 `false`。
 
+## 远程连接（手机访问自己电脑上的 QQA）
+
+QQA 控制台只监听 `127.0.0.1:3210`，而且**校验 `Host` / `Origin` 必须等于 `127.0.0.1:3210`** ——
+直接套反向代理或公网隧道会被回 `403 {"error":"请求来源不被信任（仅接受本机控制台的同源请求）"}`。
+
+`tools/start-qqa-chain.sh` 把整条链路一次拉起：
+
+```
+手机 → cloudflare 快速隧道 → 本机 13211（tools/qqa-proxy.js 改写 Host/Origin）
+     → ssh -L 13210 → 服务器/本机 127.0.0.1:3210
+```
+
+跑完脚本会打印一个 `https://xxx.trycloudflare.com` 地址，直接填进 App「电脑地址」。
+注意快速隧道**每次重启域名都会变**，脚本会自己重试到拿到能用的地址为止。
+
+停：`pkill -f qqa-proxy.js; pkill -f "13210:127.0.0.1:3210"; pkill -f cf.exe`
+
 ## 实测踩到的坑
 
 1. **模拟器 `-no-window` 必须加**。带窗口跑几次都被宿主杀掉（`qemu` 进程凭空消失），
