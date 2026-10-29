@@ -88,9 +88,10 @@ class QqaApi {
     } on HandshakeException {
       throw ApiException('连接证书验证失败，请检查地址是否为可信任的 HTTPS。');
     } on SocketException {
-      throw ApiException('暂时连不上电脑，请检查 Tailscale 和电脑上的 QQA。');
+      throw ApiException('连不上这个地址（域名解析失败或网络不通）。'
+          '临时隧道地址会过期，到「设置 → 当前连接」换成最新地址再试。');
     } on TimeoutException {
-      throw ApiException('电脑响应超时，请稍后重试。');
+      throw ApiException('电脑响应超时。地址可能已失效，或电脑端断网。');
     } finally {
       client.close(force: true);
     }

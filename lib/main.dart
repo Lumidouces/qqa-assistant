@@ -36,20 +36,28 @@ class QqaApp extends StatefulWidget {
   State<QqaApp> createState() => _QqaAppState();
 }
 
-class _QqaAppState extends State<QqaApp> {
+class _QqaAppState extends State<QqaApp> with WidgetsBindingObserver {
   late final AppState _state = widget.state;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _state.addListener(_onStateChanged);
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _state.removeListener(_onStateChanged);
     _state.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // 切回前台立刻补一次，不然要干等一个轮询周期才刷新。
+    if (state == AppLifecycleState.resumed) _state.resume();
   }
 
   void _onStateChanged() {

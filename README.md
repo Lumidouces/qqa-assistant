@@ -1,11 +1,25 @@
-# QQA 助手 · Rust + Flutter 重写版
+# QQA 助手 · Kotlin + Flutter 重写版
 
 基于 `QQA-Assistant-Public-1.0.4` 的**逻辑**重写的 Android 客户端。
-界面按深色 OLED + 绿色强调的视觉稿重做，底层换成 Rust 核心 + Flutter UI。
+界面是深色玻璃拟态 + 液态玻璃标签栏，规则内核用 Kotlin（MethodChannel），界面用 Flutter。
 
-- 包名：`cn.local.qqa.qqa_assistant`（与原版一致，可覆盖安装需先卸载，签名不同）
-- 版本：1.2.0
-- 产物：`dist/QQA-Assistant-RustFlutter-arm64-v1.2.0.apk`（19.8 MB，arm64-v8a）
+- 包名：`cn.local.qqa.qqa_assistant`（与原版一致，签名不同，覆盖安装前需先卸载）
+- 版本：1.4.1
+- 产物：`QQA-Assistant-arm64-v1.4.1.apk`（19.6 MB，arm64-v8a）
+
+### 1.4.1 变更（修「打开就是空白」）
+
+- **冷启动立刻拉数据**：以前 `AppState` 只装轮询定时器，首个请求要等满一个周期（默认 30 秒），
+  期间界面全是「控制台未连接 / 0」，看起来就是坏的。现在构造时立即 `refreshAll()`。
+- **切回前台补一次**：`QqaApp` 注册 `WidgetsBindingObserver`，`resumed` 时立刻刷新并重置轮询。
+- **错误文案说人话**：连不上时明确提示「临时隧道地址会过期，到设置 → 当前连接换最新地址」，
+  不再是一句和现实无关的 Tailscale 提示。
+
+### 1.4.0 变更（内核改 Kotlin + 动效）
+
+- 规则内核从 Rust/FFI 换成 Kotlin + `MethodChannel`，安装包里不再有 `libqqa_core.so`。
+- 新增 `lib/design/motion.dart`：切页淡入、列表错峰入场、数字变化上滑换字三组动效。
+- `flutter analyze` 干净；JVM 单测 `./gradlew :app:testReleaseUnitTest` → 11 passed。
 
 ### 1.2.0 变更（UI 重构：玻璃拟态）
 

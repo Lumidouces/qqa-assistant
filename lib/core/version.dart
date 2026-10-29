@@ -7,8 +7,8 @@
 ///   * patch (`1.2.x`) — display / copy / small fixes, no new surface
 ///   * minor (`1.x.0`) — new feature or a screen's worth of new behaviour
 ///   * major (`x.0.0`) — rewrite, or a change that breaks existing settings
-const String appVersion = '1.4.0';
-const int appBuild = 8;
+const String appVersion = '1.4.1';
+const int appBuild = 9;
 
 /// `1.2.1 (build 5)`
 String get appVersionFull => '$appVersion (build $appBuild)';

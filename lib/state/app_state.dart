@@ -13,6 +13,8 @@ import '../core/tokens_fmt.dart';
 class AppState extends ChangeNotifier {
   AppState(this.store) {
     _restartPolling();
+    // 冷启动别干等第一个周期：地址是存下来的，直接拉一次。
+    if (ready) Future.microtask(refreshAll);
   }
 
   final AppStore store;
@@ -60,6 +62,13 @@ class AppState extends ChangeNotifier {
 
   Future<void> refreshAll() async {
     await Future.wait([refreshStatus(), refreshLists()]);
+  }
+
+  /// 应用回到前台时调用：立刻补一次，不等下一个轮询周期。
+  void resume() {
+    if (!ready) return;
+    _restartPolling();
+    refreshAll();
   }
 
   Future<void> refreshStatus() async {

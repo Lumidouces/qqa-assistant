@@ -9,6 +9,9 @@ const FAKE_AUTH = `127.0.0.1:${process.env.ORIGIN_PORT || 3210}`;
 
 http
   .createServer((req, res) => {
+    if (process.env.LOG_REQ === '1') {
+      console.log(new Date().toISOString(), req.method, req.url, '|', req.headers.host, '|', req.headers['user-agent'] || '-');
+    }
     const headers = { ...req.headers, host: FAKE_AUTH };
     if (headers.origin) headers.origin = `http://${FAKE_AUTH}`;
     if (headers.referer) headers.referer = `http://${FAKE_AUTH}/`;
