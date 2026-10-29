@@ -4,8 +4,17 @@
 界面是深色玻璃拟态 + 液态玻璃标签栏，规则内核用 Kotlin（MethodChannel），界面用 Flutter。
 
 - 包名：`cn.local.qqa.qqa_assistant`（与原版一致，签名不同，覆盖安装前需先卸载）
-- 版本：1.4.1
-- 产物：`QQA-Assistant-arm64-v1.4.1.apk`（19.6 MB，arm64-v8a）
+- 版本：1.4.2
+- 产物：`QQA-Assistant-arm64-v1.4.2.apk`（19.6 MB，arm64-v8a）
+
+### 1.4.2 变更（修「切标签时所有页面叠在一起」）
+
+- 根因：`PageSwitcher` 用 `Stack` + 每页 `AnimatedOpacity`，外层却包了
+  `TickerMode(enabled: active)`。切走的那一页 ticker 被关掉，透明度动画卡死在
+  1.0，于是新旧两页永久叠在一起。
+- 改法：换回 `IndexedStack`（任何时刻只绘制当前页，状态/滚动位置照旧保留），
+  过渡改成包在外层的 `FadeTransition` + `SlideTransition`，切页时新页淡入上滑。
+  叠层在结构上就不可能发生。
 
 ### 1.4.1 变更（修「打开就是空白」）
 

@@ -194,11 +194,13 @@ class MorphText extends StatelessWidget {
   }
 }
 
-/// 标签页切换：保留每页状态（不销毁滚动位置/输入），只做过场。
+/// 标签页切换：任何时刻只画一页（IndexedStack 保状态），切页时给新页一个
+/// 淡入 + 轻微上滑。
 ///
-/// 未选中的页留在树里但 opacity 0、不吃事件、停 ticker —— 这样切回来是瞬时的，
-/// 又不会让隐藏页的动画在后台空转烧电。
-class PageSwitcher extends StatelessWidget {
+/// 之前是 Stack + 每页 AnimatedOpacity，并且用 TickerMode(enabled: active)
+/// 包住——退出页的 ticker 被关掉，透明度动画卡死在 1.0，于是新旧两页
+/// 永久叠在一起。IndexedStack 只绘制当前页，从根本上没有叠层可能。
+class PageSwitcher extends StatefulWidget {
   const PageSwitcher({
     super.key,
     required this.index,
@@ -211,76 +213,42 @@ class PageSwitcher extends StatelessWidget {
   final Duration duration;
 
   @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        for (var i = 0; i < children.length; i++)
-          _PageSlot(
-            active: i == index,
-            first: true,
-            duration: duration,
-            child: children[i],
-          ),
-      ],
-    );
-  }
+  State<PageSwitcher> createState() => _PageSwitcherState();
 }
 
-class _PageSlot extends StatefulWidget {
-  const _PageSlot({
-    required this.active,
-    required this.first,
-    required this.duration,
-    required this.child,
-  });
-
-  final bool active;
-  final bool first;
-  final Duration duration;
-  final Widget child;
-
-  @override
-  State<_PageSlot> createState() => _PageSlotState();
-}
-
-class _PageSlotState extends State<_PageSlot> {
-  /// 第一次被选中之前一直是 false，避免隐藏页在后台跑入场动画。
-  bool _warm = false;
+class _PageSwitcherState extends State<PageSwitcher>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: widget.duration,
+    value: 1,
+  );
+  late final Animation<double> _fade =
+      CurvedAnimation(parent: _controller, curve: AppMotion.enter);
+  late final Animation<Offset> _slide = Tween<Offset>(
+    begin: const Offset(0, 0.02),
+    end: Offset.zero,
+  ).animate(_fade);
 
   @override
-  void initState() {
-    super.initState();
-    _warm = widget.active;
-  }
-
-  @override
-  void didUpdateWidget(covariant _PageSlot oldWidget) {
+  void didUpdateWidget(covariant PageSwitcher oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.active && !_warm) setState(() => _warm = true);
+    if (oldWidget.index != widget.index) _controller.forward(from: 0);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final active = widget.active;
-    return IgnorePointer(
-      ignoring: !active,
-      child: TickerMode(
-        enabled: active,
-        child: AnimatedOpacity(
-          opacity: active ? 1 : 0,
-          duration: widget.duration,
-          curve: active ? AppMotion.enter : AppMotion.exit,
-          child: AnimatedSlide(
-            offset: active ? Offset.zero : const Offset(0, 0.02),
-            duration: widget.duration,
-            curve: active ? AppMotion.enter : AppMotion.exit,
-            child: TickerMode(
-              enabled: active,
-              // 未预热过的页先画出来但透明，等真正选中再淡入。
-              child: _warm ? widget.child : const SizedBox.shrink(),
-            ),
-          ),
-        ),
+    return FadeTransition(
+      opacity: _fade,
+      child: SlideTransition(
+        position: _slide,
+        child: IndexedStack(index: widget.index, children: widget.children),
       ),
     );
   }
