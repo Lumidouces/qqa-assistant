@@ -101,4 +101,8 @@ dependencies {
     // JVM 单测：QqaCoreTest 的断言与 rust/src/rules.rs 的 #[test] 一一对应，
     // 用来证明 Kotlin 移植和 Rust 原版逐字符相同（`cd android && ./gradlew test`）。
     testImplementation("junit:junit:4.13.2")
+    // GoldenParityTest 读 src/test/resources/golden.json（由 `cargo run --bin golden`
+    // 从 Rust 参考实现导出）。android.jar 里的 org.json 在 JVM 单测中是空壳实现，
+    // 因此引入真实实现。
+    testImplementation("org.json:json:20240303")
 }

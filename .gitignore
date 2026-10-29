@@ -47,3 +47,6 @@ app.*.map.json
 dist
 
 dist
+
+# Rust 参考实现的编译产物（源码进仓库，target 不进）
+/rust/target/

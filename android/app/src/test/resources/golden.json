@@ -1,0 +1,916 @@
+[
+  {
+    "args": null,
+    "expect": {
+      "name": "qqa_core",
+      "version": "0.1.0"
+    },
+    "method": "version"
+  },
+  {
+    "args": "https://qqa.example.com",
+    "expect": "https://qqa.example.com",
+    "method": "origin"
+  },
+  {
+    "args": "https://qqa.example.com/",
+    "expect": "https://qqa.example.com",
+    "method": "origin"
+  },
+  {
+    "args": "https://qqa.example.com:443/",
+    "expect": "https://qqa.example.com",
+    "method": "origin"
+  },
+  {
+    "args": "  HTTPS://QQA.example.com/app  ",
+    "error": "请填写完整 HTTPS 根地址，不含账号密码、路径、参数或 # 标记",
+    "method": "origin"
+  },
+  {
+    "args": "qqa.example.com",
+    "error": "请填写完整 HTTPS 根地址，不含账号密码、路径、参数或 # 标记",
+    "method": "origin"
+  },
+  {
+    "args": "https://qqa.example.com:8443/base",
+    "error": "请填写完整 HTTPS 根地址，不含账号密码、路径、参数或 # 标记",
+    "method": "origin"
+  },
+  {
+    "args": "http://qqa.example.com",
+    "error": "请填写完整 HTTPS 根地址，不含账号密码、路径、参数或 # 标记",
+    "method": "origin"
+  },
+  {
+    "args": "https://user:pw@qqa.example.com",
+    "error": "请填写完整 HTTPS 根地址，不含账号密码、路径、参数或 # 标记",
+    "method": "origin"
+  },
+  {
+    "args": "https://qqa.example.com/?a=1",
+    "error": "请填写完整 HTTPS 根地址，不含账号密码、路径、参数或 # 标记",
+    "method": "origin"
+  },
+  {
+    "args": "https://qqa.example.com/#frag",
+    "error": "请填写完整 HTTPS 根地址，不含账号密码、路径、参数或 # 标记",
+    "method": "origin"
+  },
+  {
+    "args": "",
+    "error": "请填写完整 HTTPS 根地址，不含账号密码、路径、参数或 # 标记",
+    "method": "origin"
+  },
+  {
+    "args": "ftp://qqa.example.com",
+    "error": "请填写完整 HTTPS 根地址，不含账号密码、路径、参数或 # 标记",
+    "method": "origin"
+  },
+  {
+    "args": "https://[::1]:9000/",
+    "expect": "https://[::1]:9000",
+    "method": "origin"
+  },
+  {
+    "args": {
+      "items": [
+        "[CQ:image,file=a.jpg]看图",
+        "[CQ:at,qq=12345] 你好",
+        "[CQ:reply,id=9]收到  [CQ:face,id=1]",
+        "  y  z ",
+        "纯文本没有码",
+        ""
+      ]
+    },
+    "expect": [
+      "[图片]看图",
+      "@12345 你好",
+      "收到",
+      "y z",
+      "纯文本没有码",
+      ""
+    ],
+    "method": "previews"
+  },
+  {
+    "args": {
+      "items": []
+    },
+    "expect": [],
+    "method": "previews"
+  },
+  {
+    "args": {},
+    "expect": [],
+    "method": "previews"
+  },
+  {
+    "args": {
+      "value": -1
+    },
+    "expect": "—",
+    "method": "count"
+  },
+  {
+    "args": {
+      "value": 0
+    },
+    "expect": "0",
+    "method": "count"
+  },
+  {
+    "args": {
+      "value": 1
+    },
+    "expect": "1",
+    "method": "count"
+  },
+  {
+    "args": {
+      "value": 999
+    },
+    "expect": "999",
+    "method": "count"
+  },
+  {
+    "args": {
+      "value": 1000
+    },
+    "expect": "1000",
+    "method": "count"
+  },
+  {
+    "args": {
+      "value": 9999
+    },
+    "expect": "9999",
+    "method": "count"
+  },
+  {
+    "args": {
+      "value": 10000
+    },
+    "expect": "1万",
+    "method": "count"
+  },
+  {
+    "args": {
+      "value": 11500
+    },
+    "expect": "1.2万",
+    "method": "count"
+  },
+  {
+    "args": {
+      "value": 12500
+    },
+    "expect": "1.3万",
+    "method": "count"
+  },
+  {
+    "args": {
+      "value": 99999
+    },
+    "expect": "10万",
+    "method": "count"
+  },
+  {
+    "args": {
+      "value": 999999
+    },
+    "expect": "100万",
+    "method": "count"
+  },
+  {
+    "args": {
+      "value": 1000000
+    },
+    "expect": "1M",
+    "method": "count"
+  },
+  {
+    "args": {
+      "value": 1234567
+    },
+    "expect": "1.2M",
+    "method": "count"
+  },
+  {
+    "args": {
+      "unit": "auto",
+      "value": -1
+    },
+    "expect": "— tok",
+    "method": "tokenCount"
+  },
+  {
+    "args": {
+      "unit": "auto",
+      "value": 0
+    },
+    "expect": "0 tok",
+    "method": "tokenCount"
+  },
+  {
+    "args": {
+      "unit": "auto",
+      "value": 999
+    },
+    "expect": "999 tok",
+    "method": "tokenCount"
+  },
+  {
+    "args": {
+      "unit": "auto",
+      "value": 1500
+    },
+    "expect": "1.5k tok",
+    "method": "tokenCount"
+  },
+  {
+    "args": {
+      "unit": "auto",
+      "value": 31000
+    },
+    "expect": "31k tok",
+    "method": "tokenCount"
+  },
+  {
+    "args": {
+      "unit": "auto",
+      "value": 3100000
+    },
+    "expect": "3.1M tok",
+    "method": "tokenCount"
+  },
+  {
+    "args": {
+      "unit": "auto",
+      "value": 13146353280
+    },
+    "expect": "13.1B tok",
+    "method": "tokenCount"
+  },
+  {
+    "args": {
+      "unit": "m",
+      "value": 13146353280
+    },
+    "expect": "13146.4M tok",
+    "method": "tokenCount"
+  },
+  {
+    "args": {
+      "unit": "k",
+      "value": 13146353280
+    },
+    "expect": "13146353.3k tok",
+    "method": "tokenCount"
+  },
+  {
+    "args": {
+      "unit": "b",
+      "value": 3100000
+    },
+    "expect": "3.1M tok",
+    "method": "tokenCount"
+  },
+  {
+    "args": {
+      "unit": "m",
+      "value": 2500
+    },
+    "expect": "2.5k tok",
+    "method": "tokenCount"
+  },
+  {
+    "args": {
+      "unit": "k",
+      "value": 999
+    },
+    "expect": "999 tok",
+    "method": "tokenCount"
+  },
+  {
+    "args": {
+      "unit": "k",
+      "value": 1000
+    },
+    "expect": "1k tok",
+    "method": "tokenCount"
+  },
+  {
+    "args": {
+      "value": -1.0
+    },
+    "expect": "—",
+    "method": "percent"
+  },
+  {
+    "args": {
+      "value": 0.0
+    },
+    "expect": "0%",
+    "method": "percent"
+  },
+  {
+    "args": {
+      "value": 0.5
+    },
+    "expect": "50%",
+    "method": "percent"
+  },
+  {
+    "args": {
+      "value": 0.85
+    },
+    "expect": "85%",
+    "method": "percent"
+  },
+  {
+    "args": {
+      "value": 1.0
+    },
+    "expect": "100%",
+    "method": "percent"
+  },
+  {
+    "args": {
+      "value": 1.4
+    },
+    "expect": "100%",
+    "method": "percent"
+  },
+  {
+    "args": {
+      "value": -1
+    },
+    "expect": "未知",
+    "method": "elapsed"
+  },
+  {
+    "args": {
+      "value": -1
+    },
+    "expect": "用时未知",
+    "method": "compactElapsed"
+  },
+  {
+    "args": {
+      "value": 0
+    },
+    "expect": "0.0 秒",
+    "method": "elapsed"
+  },
+  {
+    "args": {
+      "value": 0
+    },
+    "expect": "0s",
+    "method": "compactElapsed"
+  },
+  {
+    "args": {
+      "value": 999
+    },
+    "expect": "1.0 秒",
+    "method": "elapsed"
+  },
+  {
+    "args": {
+      "value": 999
+    },
+    "expect": "1s",
+    "method": "compactElapsed"
+  },
+  {
+    "args": {
+      "value": 1500
+    },
+    "expect": "1.5 秒",
+    "method": "elapsed"
+  },
+  {
+    "args": {
+      "value": 1500
+    },
+    "expect": "1.5s",
+    "method": "compactElapsed"
+  },
+  {
+    "args": {
+      "value": 59000
+    },
+    "expect": "59.0 秒",
+    "method": "elapsed"
+  },
+  {
+    "args": {
+      "value": 59000
+    },
+    "expect": "59s",
+    "method": "compactElapsed"
+  },
+  {
+    "args": {
+      "value": 60000
+    },
+    "expect": "1分0秒",
+    "method": "elapsed"
+  },
+  {
+    "args": {
+      "value": 60000
+    },
+    "expect": "1m0s",
+    "method": "compactElapsed"
+  },
+  {
+    "args": {
+      "value": 200000
+    },
+    "expect": "3分20秒",
+    "method": "elapsed"
+  },
+  {
+    "args": {
+      "value": 200000
+    },
+    "expect": "3m20s",
+    "method": "compactElapsed"
+  },
+  {
+    "args": {
+      "value": 3599000
+    },
+    "expect": "59分59秒",
+    "method": "elapsed"
+  },
+  {
+    "args": {
+      "value": 3599000
+    },
+    "expect": "59m59s",
+    "method": "compactElapsed"
+  },
+  {
+    "args": {
+      "value": 3600000
+    },
+    "expect": "1时0分",
+    "method": "elapsed"
+  },
+  {
+    "args": {
+      "value": 3600000
+    },
+    "expect": "1h0m",
+    "method": "compactElapsed"
+  },
+  {
+    "args": {
+      "value": 3900000
+    },
+    "expect": "1时5分",
+    "method": "elapsed"
+  },
+  {
+    "args": {
+      "value": 3900000
+    },
+    "expect": "1h5m",
+    "method": "compactElapsed"
+  },
+  {
+    "args": {
+      "duration": -1,
+      "end": -1,
+      "now": 2000,
+      "outcome": "running",
+      "start": 0
+    },
+    "expect": "运行中 2s",
+    "method": "toolTiming"
+  },
+  {
+    "args": {
+      "duration": -1,
+      "end": -1,
+      "now": -1,
+      "outcome": "running",
+      "start": -1
+    },
+    "expect": "运行中",
+    "method": "toolTiming"
+  },
+  {
+    "args": {
+      "duration": -1,
+      "end": 1200,
+      "now": 5000,
+      "outcome": "delivered",
+      "start": 0
+    },
+    "expect": "1.2s（状态未知）",
+    "method": "toolTiming"
+  },
+  {
+    "args": {
+      "duration": -1,
+      "end": 1200,
+      "now": 0,
+      "outcome": "error",
+      "start": 0
+    },
+    "expect": "1.2s（失败）",
+    "method": "toolTiming"
+  },
+  {
+    "args": {
+      "duration": 1500,
+      "end": -1,
+      "now": 0,
+      "outcome": "timeout",
+      "start": 0
+    },
+    "expect": "1.5s（超时）",
+    "method": "toolTiming"
+  },
+  {
+    "args": {
+      "duration": -1,
+      "end": -1,
+      "now": 0,
+      "outcome": "",
+      "start": 0
+    },
+    "expect": "用时未提供",
+    "method": "toolTiming"
+  },
+  {
+    "args": {
+      "fallback": "",
+      "input": "普淮"
+    },
+    "expect": "普淮",
+    "method": "profileName"
+  },
+  {
+    "args": {
+      "fallback": "默认",
+      "input": ""
+    },
+    "expect": "默认",
+    "method": "profileName"
+  },
+  {
+    "args": {
+      "fallback": "",
+      "input": ""
+    },
+    "expect": "",
+    "method": "profileName"
+  },
+  {
+    "args": {
+      "fallback": "",
+      "input": "一二三四五六七八九十"
+    },
+    "expect": "一二三四五六七八",
+    "method": "profileName"
+  },
+  {
+    "args": {
+      "fallback": "",
+      "input": "😀😀😀😀😀😀😀😀😀"
+    },
+    "expect": "😀😀😀😀😀😀😀😀",
+    "method": "profileName"
+  },
+  {
+    "args": {
+      "key": "group:42",
+      "name": ""
+    },
+    "expect": "群聊 42",
+    "method": "chatTitle"
+  },
+  {
+    "args": {
+      "key": "private:7",
+      "name": ""
+    },
+    "expect": "私聊 7",
+    "method": "chatTitle"
+  },
+  {
+    "args": {
+      "key": "",
+      "name": ""
+    },
+    "expect": "未命名会话",
+    "method": "chatTitle"
+  },
+  {
+    "args": {
+      "key": "",
+      "name": "有名字"
+    },
+    "expect": "有名字",
+    "method": "chatTitle"
+  },
+  {
+    "args": {
+      "key": "group:1",
+      "name": "自定义"
+    },
+    "expect": "自定义",
+    "method": "chatTitle"
+  },
+  {
+    "args": {
+      "value": "running"
+    },
+    "expect": "处理中",
+    "method": "statusLabel"
+  },
+  {
+    "args": {
+      "value": "waiting"
+    },
+    "expect": "等待中",
+    "method": "statusLabel"
+  },
+  {
+    "args": {
+      "value": "error"
+    },
+    "expect": "失败",
+    "method": "statusLabel"
+  },
+  {
+    "args": {
+      "value": "failed"
+    },
+    "expect": "失败",
+    "method": "statusLabel"
+  },
+  {
+    "args": {
+      "value": "delivered"
+    },
+    "expect": "已回复",
+    "method": "statusLabel"
+  },
+  {
+    "args": {
+      "value": "completed"
+    },
+    "expect": "已结束",
+    "method": "statusLabel"
+  },
+  {
+    "args": {
+      "value": "ended"
+    },
+    "expect": "已结束",
+    "method": "statusLabel"
+  },
+  {
+    "args": {
+      "value": "aborted"
+    },
+    "expect": "已停止",
+    "method": "statusLabel"
+  },
+  {
+    "args": {
+      "value": "stopped"
+    },
+    "expect": "已停止",
+    "method": "statusLabel"
+  },
+  {
+    "args": {
+      "value": "noreply"
+    },
+    "expect": "未回复",
+    "method": "statusLabel"
+  },
+  {
+    "args": {
+      "value": "skipped"
+    },
+    "expect": "未回复",
+    "method": "statusLabel"
+  },
+  {
+    "args": {
+      "value": ""
+    },
+    "expect": "状态未知",
+    "method": "statusLabel"
+  },
+  {
+    "args": {
+      "value": "别的状态"
+    },
+    "expect": "别的状态",
+    "method": "statusLabel"
+  },
+  {
+    "args": {
+      "value": "[CQ:at,qq=7]  hi"
+    },
+    "expect": "@7 hi",
+    "method": "previewText"
+  },
+  {
+    "args": {
+      "value": "[CQ:reply,id=3]回复内容"
+    },
+    "expect": "回复内容",
+    "method": "previewText"
+  },
+  {
+    "args": {
+      "value": "[CQ:image,file=x.png][CQ:image,file=y.png]"
+    },
+    "expect": "[图片][图片]",
+    "method": "previewText"
+  },
+  {
+    "args": {
+      "value": "  多   个    空格  "
+    },
+    "expect": "多 个 空格",
+    "method": "previewText"
+  },
+  {
+    "args": {
+      "value": "很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长尾巴"
+    },
+    "expect": "很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长…",
+    "method": "previewText"
+  },
+  {
+    "args": {
+      "value": ""
+    },
+    "expect": "",
+    "method": "previewText"
+  },
+  {
+    "args": {
+      "cacheReadTokens": 9000,
+      "calls": 11500,
+      "chatKey": "group:42",
+      "chatName": "",
+      "completionTokens": 11000,
+      "duration": -1,
+      "elapsedMs": 200000,
+      "end": 1200,
+      "fontPercent": 999,
+      "now": 0,
+      "outcome": "error",
+      "promptTokens": 20000,
+      "start": 0,
+      "status": "running",
+      "text": "[CQ:at,qq=7]  hi",
+      "tokens": 310000,
+      "totalTokens": 45600
+    },
+    "expect": {
+      "cacheReadTokens": "9k tok",
+      "calls": "1.2万",
+      "chatTitle": "群聊 42",
+      "compactElapsed": "3m20s",
+      "completionTokens": "11k tok",
+      "elapsed": "3分20秒",
+      "fontPercent": 160,
+      "preview": "@7 hi",
+      "profileName": "",
+      "promptTokens": "20k tok",
+      "statusLabel": "处理中",
+      "tokens": "310k tok",
+      "toolTiming": "1.2s（失败）",
+      "totalTokens": "45.6k tok"
+    },
+    "method": "describe"
+  },
+  {
+    "args": {
+      "chatKey": "private:9",
+      "status": "ended",
+      "tokenUnit": "m",
+      "totalTokens": 13146353280
+    },
+    "expect": {
+      "cacheReadTokens": "— tok",
+      "calls": "—",
+      "chatTitle": "私聊 9",
+      "compactElapsed": "用时未知",
+      "completionTokens": "— tok",
+      "elapsed": "未知",
+      "fontPercent": 100,
+      "preview": "",
+      "profileName": "",
+      "promptTokens": "— tok",
+      "statusLabel": "已结束",
+      "tokens": "— tok",
+      "toolTiming": "用时未提供",
+      "totalTokens": "13146.4M tok"
+    },
+    "method": "describe"
+  },
+  {
+    "args": {},
+    "expect": {
+      "cacheReadTokens": "— tok",
+      "calls": "—",
+      "chatTitle": "未命名会话",
+      "compactElapsed": "用时未知",
+      "completionTokens": "— tok",
+      "elapsed": "未知",
+      "fontPercent": 100,
+      "preview": "",
+      "profileName": "",
+      "promptTokens": "— tok",
+      "statusLabel": "状态未知",
+      "tokens": "— tok",
+      "toolTiming": "用时未提供",
+      "totalTokens": "— tok"
+    },
+    "method": "describe"
+  },
+  {
+    "args": {
+      "cacheHitRate": 0.85,
+      "calls": 119,
+      "connected": true,
+      "paused": false,
+      "totalTokens": 310000
+    },
+    "expect": {
+      "accent": "ok",
+      "botLabel": "DSH 运行中",
+      "calls": "119",
+      "connectionLabel": "控制台已连接",
+      "hitRate": "85%",
+      "totalTokens": "310k tok"
+    },
+    "method": "statusView"
+  },
+  {
+    "args": {
+      "cacheHitRate": 0.5,
+      "calls": 5,
+      "connected": true,
+      "paused": true,
+      "totalTokens": 1200
+    },
+    "expect": {
+      "accent": "warn",
+      "botLabel": "自动回复已暂停",
+      "calls": "5",
+      "connectionLabel": "控制台已连接",
+      "hitRate": "50%",
+      "totalTokens": "1.2k tok"
+    },
+    "method": "statusView"
+  },
+  {
+    "args": {
+      "connected": false
+    },
+    "expect": {
+      "accent": "idle",
+      "botLabel": "DSH 未运行",
+      "calls": "—",
+      "connectionLabel": "控制台未连接",
+      "hitRate": "—",
+      "totalTokens": "— tok"
+    },
+    "method": "statusView"
+  },
+  {
+    "args": {
+      "cacheHitRate": -1.0,
+      "calls": -1,
+      "connected": true,
+      "paused": false,
+      "tokenUnit": "k",
+      "totalTokens": -1
+    },
+    "expect": {
+      "accent": "ok",
+      "botLabel": "DSH 运行中",
+      "calls": "—",
+      "connectionLabel": "控制台已连接",
+      "hitRate": "—",
+      "totalTokens": "— tok"
+    },
+    "method": "statusView"
+  }
+]

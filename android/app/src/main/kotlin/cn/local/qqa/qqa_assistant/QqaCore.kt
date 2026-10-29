@@ -380,6 +380,38 @@ object QqaCore {
             val items = (asMap(arguments)["items"] as? List<*>) ?: emptyList<Any?>()
             items.map { previewText(it as? String ?: "") }
         }
+        // 下面是逐条规则的直通口，只为与 Rust 参考实现（rust/src/lib.rs 的
+        // dispatch）对齐、并让 GoldenParityTest 能逐条比对而存在；
+        // 界面走的是上面的 describe/statusView 组合口。
+        "fontPercent" -> fontPercent(readLong(asMap(arguments), "value", 100))
+        "count" -> count(readLong(asMap(arguments), "value", -1))
+        "tokenCount" -> tokenCountIn(
+            readLong(asMap(arguments), "value", -1),
+            readString(asMap(arguments), "unit").ifEmpty { "auto" },
+        )
+        "percent" -> percent(readDouble(asMap(arguments), "value", -1.0))
+        "elapsed" -> elapsed(readLong(asMap(arguments), "value", -1))
+        "compactElapsed" -> compactElapsed(readLong(asMap(arguments), "value", -1))
+        "toolTiming" -> {
+            val map = asMap(arguments)
+            toolTiming(
+                readString(map, "outcome"),
+                readLong(map, "start", -1),
+                readLong(map, "end", -1),
+                readLong(map, "duration", -1),
+                readLong(map, "now", 0),
+            )
+        }
+        "profileName" -> {
+            val map = asMap(arguments)
+            profileName(readString(map, "input"), readString(map, "fallback"))
+        }
+        "chatTitle" -> {
+            val map = asMap(arguments)
+            chatTitle(readString(map, "key"), readString(map, "name"))
+        }
+        "statusLabel" -> statusLabel(readString(asMap(arguments), "value"))
+        "previewText" -> previewText(readString(asMap(arguments), "value"))
         else -> throw RuleException("未知的规则方法：$method")
     }
 

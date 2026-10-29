@@ -1,0 +1,22 @@
+[package]
+name = "qqa_core"
+version = "0.1.0"
+edition = "2021"
+description = "QQA Assistant core rules engine exposed to Flutter via C ABI"
+
+[lib]
+name = "qqa_core"
+crate-type = ["cdylib", "staticlib", "rlib"]
+
+# Pure-Rust only: no C dependencies, so it cross-compiles to Android with just
+# the NDK clang and needs no mingw toolchain on the host.
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"

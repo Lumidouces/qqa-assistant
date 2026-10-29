@@ -4,8 +4,22 @@
 界面是深色玻璃拟态 + 液态玻璃标签栏，规则内核用 Kotlin（MethodChannel），界面用 Flutter。
 
 - 包名：`cn.local.qqa.qqa_assistant`（与原版一致，签名不同，覆盖安装前需先卸载）
-- 版本：1.4.3
-- 产物：`QQA-Assistant-arm64-v1.4.3.apk`（19.6 MB，arm64-v8a）
+- 版本：1.4.4
+- 产物：`QQA-Assistant-arm64-v1.4.4.apk`（19.6 MB，arm64-v8a）
+
+### 1.4.4 变更（规则内核 Rust 版回归，作为参考实现并存）
+
+- `rust/` 目录重新入库：`qqa_core` 0.1.0 完整回归（`rules.rs` 444 行 + `lib.rs` 364 行 + `bin/golden.rs`）。
+  它**不参与打包**，出厂仍是 Kotlin 内核，作用是给规则层留一份独立语言的对照物。
+- `lib.rs` 里把 `qqa_describe` / `qqa_status_view` 的正文抽成 `describe_payload` / `status_view_payload`，
+  并新增 `pub fn dispatch(method, args)`：和 Kotlin `QqaCore.handle` 同一张方法表（version / origin /
+  previews / describe / statusView + 13 条单规则）。
+- 新增 `cargo run --bin golden`：跑 Rust 参考实现生成 `android/app/src/test/resources/golden.json`，
+  共 111 条向量；`GoldenParityTest` 在 Kotlin 侧逐条回放比对（跳过 `version`，两边各自维护版本号）。
+  以后改任何一边没改另一边，`./gradlew :app:testReleaseUnitTest` 直接红。
+- 新增 `docs/KERNEL-RUST-VS-KOTLIN.md`：两版在调用通路、构建链、体积、错误语义、Unicode/舍入坑、
+  换回 Rust 的步骤上的完整对比。
+- App 侧无行为变化（Kotlin 内核只多了几条通道分发口，界面走的仍是 `describe` / `statusView` 组合口）。
 
 ### 1.4.3 变更（一轮 bug 清扫）
 
@@ -83,23 +97,22 @@
 | 层 | 原版 | 现在 |
 |---|---|---|
 | UI | Java 手写 View（714 行 MainActivity） | Flutter，深色 + 绿色，卡片圆角 16-20 |
-| 核心 | 全在 Java 里 | Rust `qqa_core`（FFI：cdylib）做地址校验、CQ 码清洗、文本截断、时间格式化 |
+| 核心 | 全在 Java 里 | `QqaCore`（Kotlin，MethodChannel）做地址校验、CQ 码清洗、文本截断、时间格式化；同语义的 Rust `qqa_core` 保留在 `rust/` 作参考实现 |
 | 请求 | `HttpsURLConnection` | `dart:io HttpClient` |
 | 设置 | SharedPreferences 散落 key | `AppStore` 统一封装，schema 化 |
 
 ## 构建
 
 ```bash
-# 需要：Flutter 3.35.x、Android SDK 35 + NDK 27、Rust（x86_64-pc-windows-gnu host）
+# 需要：Flutter 3.35.x、Android SDK 35、「JDK 21」（JDK 25 会让 Kotlin 的 JavaVersion.parse 抛异常）
 export FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn   # 必须，否则 engine jar 只有 40KB/s
+export JAVA_HOME="/c/Program Files/Java/jdk-21.0.10"
 
-# 1. Rust 核心 → .so
-bash tools/build-rust.sh          # 产物进 android/app/src/main/jniLibs/{arm64-v8a,x86_64}
-
-# 2. 打包
 flutter build apk --release --target-platform android-arm64   # 真机
 flutter build apk --debug   --target-platform android-x64     # 模拟器
 ```
+
+规则内核是 Kotlin，**不需要** Rust 工具链，也不需要往 `jniLibs/` 拷 `.so`。
 
 `android/app/build.gradle.kts` 里的 `resolvedAbi` 会把 `-Ptarget-platform` 映射成
 `abiFilters`，**不要**只传 `--target-platform` 就以为打进去了——Flutter 不设
@@ -144,9 +157,44 @@ App 只接受 `https:` 地址，所以本机 mock 必须经隧道或自签证书
 4. **预置账号用 `run-as`**。模拟器上想跳过手输地址，直接把 `FlutterSharedPreferences.xml`
    push 进 `shared_prefs/`（`adb shell run-as cn.local.qqa.qqa_assistant cp ...`）。
 
+## 规则内核：两份实现并存
+
+规则层现在有两份语义等价的实现，都在仓库里：
+
+| 位置 | 语言 | 角色 |
+|---|---|---|
+| `android/app/src/main/kotlin/cn/local/qqa/qqa_assistant/QqaCore.kt` | Kotlin | **出厂实现**，App 经 MethodChannel 调它 |
+| `rust/` | Rust（crate `qqa_core`） | **参考实现**，不参与打包；`cargo test` / 生成黄金向量 / 需要时可换回 `dart:ffi` |
+
+两份不许漂移，靠 `android/app/src/test/resources/golden.json` 卡住。这份文件不是手写的，
+是 Rust 跑出来的：
+
+```bash
+cd rust
+export RUSTUP_HOME=/e/toolchains/rustup CARGO_HOME=/e/toolchains/cargo PATH="/e/toolchains/cargo/bin:$PATH"
+cargo test                 # 12 passed（7 条规则 + 5 条 C ABI / dispatch）
+cargo run --bin golden     # → android/app/src/test/resources/golden.json（111 条向量）
+```
+
+Kotlin 侧把同一批输入回放，逐条比对输出：
+
+```bash
+cd android
+export JAVA_HOME="/c/Program Files/Java/jdk-21.0.10"
+./gradlew :app:testReleaseUnitTest   # 12 tests：QqaCoreTest 11 + GoldenParityTest 1（比对 110 条）
+```
+
+> 只能跑 `testReleaseUnitTest`：debug 变体要从 `storage.googleapis.com` 拉 flutter engine 的调试 jar，
+> 国内不通；release 变体的 jar 已缓存。`golden` 测试另外引了 `org.json:json:20240303`，
+> 因为 `android.jar` 里的 `org.json` 在 JVM 上是空壳。
+
+两版的完整对比（调用通路、构建链、体积、错误语义、Unicode/舍入坑、换回步骤）见
+[`docs/KERNEL-RUST-VS-KOTLIN.md`](docs/KERNEL-RUST-VS-KOTLIN.md)。
+
 ## 测试
 
 ```
-flutter analyze   → No issues found
-flutter test      → 7 passed（Rust 侧 cargo test 8 passed）
+flutter analyze                      → No issues found
+./gradlew :app:testReleaseUnitTest   → 12 tests passed（Kotlin 内核 11 + 跨语言黄金向量 1）
+cargo test（rust/）                   → 12 passed
 ```
