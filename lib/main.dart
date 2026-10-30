@@ -10,6 +10,7 @@ import 'state/app_state.dart';
 import 'theme.dart';
 import 'ui/screens/connect_screen.dart';
 import 'ui/screens/events_screen.dart';
+import 'ui/screens/insights_screen.dart';
 import 'ui/screens/logs_screen.dart';
 import 'ui/screens/overview_screen.dart';
 import 'ui/screens/settings_screen.dart';
@@ -123,6 +124,7 @@ class _ShellState extends State<Shell> {
   static const _tabs = <({String label, IconData icon})>[
     (label: '总览', icon: Icons.blur_on_rounded),
     (label: '过程', icon: Icons.forum_rounded),
+    (label: '剖析', icon: Icons.insights_rounded),
     (label: '存档', icon: Icons.chat_bubble_rounded),
     (label: '操作', icon: Icons.bolt_rounded),
     (label: '设置', icon: Icons.settings_rounded),
@@ -144,6 +146,7 @@ class _ShellState extends State<Shell> {
     final pages = <Widget>[
       OverviewScreen(state: state, onNavigate: _select),
       LogsScreen(state: state),
+      InsightsScreen(state: state),
       EventsScreen(state: state),
       ToolsScreen(state: state),
       SettingsScreen(state: state),

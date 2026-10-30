@@ -165,7 +165,9 @@ class _SessionSheet extends StatefulWidget {
 class _SessionSheetState extends State<_SessionSheet> {
   Map<String, Object?> _detail = const {};
   bool _busy = true;
+  bool _acting = false;
   String? _error;
+  String? _actionError;
 
   @override
   void initState() {
@@ -184,6 +186,24 @@ class _SessionSheetState extends State<_SessionSheet> {
     }
   }
 
+  /// `retry` / `abort`：0.5 才有的会话处置接口。
+  Future<void> _act(String action) async {
+    if (_acting) return;
+    setState(() {
+      _acting = true;
+      _actionError = null;
+    });
+    try {
+      await widget.state.sessionAction(widget.row.id, action);
+      if (!mounted) return;
+      Navigator.of(context).maybePop();
+    } on Object catch (error) {
+      if (mounted) setState(() => _actionError = '$error');
+    } finally {
+      if (mounted) setState(() => _acting = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final ramp = GlassScope.rampOf(context);
@@ -198,6 +218,12 @@ class _SessionSheetState extends State<_SessionSheet> {
     final usage = _detail['usage'] is Map
         ? (_detail['usage'] as Map).cast<String, Object?>()
         : const <String, Object?>{};
+    final status = widget.row.status;
+    final canAbort = status == 'running' || status == 'waiting';
+    final canRetry = status == 'failed' ||
+        status == 'error' ||
+        status == 'noreply' ||
+        status == 'skipped';
 
     return DraggableScrollableSheet(
       expand: false,
@@ -249,6 +275,37 @@ class _SessionSheetState extends State<_SessionSheet> {
                       color: ramp.contentMuted),
               ],
             ),
+            if (canAbort || canRetry) ...[
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  if (canAbort)
+                    Expanded(
+                      child: GhostButton(
+                        label: '中止这次',
+                        icon: Icons.stop_circle_outlined,
+                        onPressed: _acting ? null : () => _act('abort'),
+                      ),
+                    ),
+                  if (canAbort && canRetry) const SizedBox(width: 10),
+                  if (canRetry)
+                    Expanded(
+                      child: PrimaryButton(
+                        label: '重试',
+                        icon: Icons.refresh_rounded,
+                        busy: _acting,
+                        onPressed: _acting ? null : () => _act('retry'),
+                      ),
+                    ),
+                ],
+              ),
+              if (_actionError != null) ...[
+                const SizedBox(height: 8),
+                Text(_actionError!,
+                    style:
+                        GlassText.caption.copyWith(color: GlassStatus.danger)),
+              ],
+            ],
             if (error.isNotEmpty) ...[
               const SizedBox(height: 12),
               Container(

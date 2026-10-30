@@ -79,6 +79,9 @@ class QqaApi {
       if (response.statusCode == 502 || response.statusCode == 503) {
         throw ApiException('电脑上的 QQA 暂时没有运行，请启动后再试。');
       }
+      if (response.statusCode == 404) {
+        throw ApiException('电脑上的 QQA 没有这个接口，请把它升级到 0.5 或更高版本。');
+      }
       if (response.statusCode < 200 || response.statusCode >= 300) {
         throw ApiException('电脑暂时无法完成请求，请稍后重试。');
       }
@@ -143,5 +146,28 @@ class QqaApi {
 
   Future<void> setPaused(bool paused) async {
     await _send('POST', '/api/pause', body: {'paused': paused});
+  }
+
+  /// `/api/usage/stats?range=1|7|30` — 0.5 起才有；0.4 会返回 404，由调用方
+  /// 提示「控制台版本太旧」。
+  Future<Map<String, Object?>> usageStats(String range) =>
+      _getMap('/api/usage/stats', query: {'range': range});
+
+  /// `/api/logs?limit=N` — 返回 `{logs: [...], level: 'info'}`。
+  Future<Map<String, Object?>> recentLogs({int limit = 120}) =>
+      _getMap('/api/logs', query: {'limit': '$limit'});
+
+  /// `/api/logs/level` — 改控制台日志级别，body `{level}`。
+  Future<void> setLogLevel(String level) async {
+    await _send('POST', '/api/logs/level', body: {'level': level});
+  }
+
+  /// `/api/sessions/{id}/retry|abort` — 让卡住或失败的会话立刻重跑/中止。
+  Future<void> sessionAction(String id, String action) async {
+    if (action != 'retry' && action != 'abort') {
+      throw ApiException('未知的会话操作');
+    }
+    await _send('POST',
+        '/api/sessions/${Uri.encodeComponent(id)}/$action');
   }
 }

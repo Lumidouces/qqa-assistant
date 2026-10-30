@@ -5,10 +5,10 @@
 同一版本号出两份 APK 并存，功能与界面完全一致，只有内核通路不同。
 
 - 包名：`cn.local.qqa.qqa_assistant`（与原版一致，签名不同，覆盖安装前需先卸载）
-- 版本：1.4.5
+- 版本：1.6.0（适配 QQA 控制台 0.5）
 - 产物（任选其一，装前先卸载另一个；两份同版本号、同设置、同界面）：
-  - `QQA-Assistant-arm64-v1.4.5-kotlin.apk` — Kotlin 内核（MethodChannel），19.6 MB，**推荐默认**
-  - `QQA-Assistant-arm64-v1.4.5-rust.apk` — Rust 内核（dart:ffi），20.0 MB
+  - `QQA-Assistant-arm64-v1.6.0-kotlin.apk` — Kotlin 内核（MethodChannel），19.7 MB，**推荐默认**
+  - `QQA-Assistant-arm64-v1.6.0-rust.apk` — Rust 内核（dart:ffi），20.1 MB
 
 ## 两个版本各自的优势
 
@@ -47,6 +47,24 @@ flutter build apk --release --target-platform android-x64 --dart-define=QQA_KERN
 
 内核选择在 `lib/core/core.dart`：`const kRustKernel = bool.fromEnvironment('QQA_KERNEL_RUST')`，
 为 true 走 `dart:ffi` 打开 `libqqa_core.so`，为 false 走 `MethodChannel('qqa/core')` 调 `QqaCore`。
+
+### 1.6.0 变更（对接控制台 0.5：剖析页 / 会话重试与中止 / 日志级别）
+
+0.5 的「薄内核 + 全插件」把控制台的路由扩了一大批，这版把其中对手机有用的一块搬了过来。
+
+- **新增「剖析」页**（底部第二个 tab，六 tab 布局）：
+  - **用量**：`GET /api/usage/stats?range=1|7|30`。总花费 / 总 token（含缓存部分）/ 调用次数 /
+    按天柱状图 / 按模型、按聊天的 token 前五名，金额与 token 单位跟随设置页的显示偏好。
+  - **日志**：`GET /api/logs?limit=120` 拉最近运行日志，每条带时间、级别、来源模块、正文，
+    级别 chip 直接调 `POST /api/logs/level` 改控制台日志级别（乐观更新，失败回滚）。
+- **会话可以重试 / 中止**：会话详情抽屉按状态给出动作 —— `running`/`waiting` 显示「中止这次」
+  （`POST /api/sessions/{id}/abort`），`failed`/`error`/`noreply` 显示「重试」
+  （`POST /api/sessions/{id}/retry`），成功即关闭抽屉并刷新列表。
+- **对老控制台友好**：这些接口 0.4 没有，命中 404 时提示「电脑上的 QQA 没有这个接口，
+  请把它升级到 0.5 或更高版本」，其余功能照常可用。
+- 修了 chip 点不动的问题：`GestureDetector` 改 `HitTestBehavior.opaque` 并外扩 4dp，
+  时间范围 / 日志级别这种小胶囊现在点一下就中。
+- 版本 1.6.0（build 14）。
 
 ### 1.4.5 变更（玻璃渲染提速 + 画质三档 + 打包闸门）
 
@@ -183,6 +201,16 @@ adb install -r dist/...apk && adb shell am start -n cn.local.qqa.qqa_assistant/.
 App 只接受 `https:` 地址，所以本机 mock 必须经隧道或自签证书，不能直连 `http://127.0.0.1:8788`。
 
 ## 已验证
+
+**1.6.0 对控制台 0.5**（本机 `node src/server.js` 起 0.5，经 `tools/qqa-proxy.js` + cloudflared
+隧道给模拟器，Android 15 API 35 x86_64 实测）：
+
+- 代理日志里能看到 App 自己的 UA 打到新接口：`GET /api/usage/stats?range=7`、`?range=30`
+  （切时间范围 chip 后重新请求）、`GET /api/logs?limit=120`、`POST /api/logs/level`（切级别 chip）。
+- 剖析页两页都验证过：用量页空态「这段时间还没有用量／电脑上的 QQA 处理过消息后才有统计」，
+  日志页能列出 onebot 传输层的真实日志（级别、来源、正文齐全）。
+- 0.5 空库时 `/api/usage/stats` 返回全零，界面按「空态」渲染而不是报错。
+- `POST /api/pause` 仍然有效：点暂停后服务端 `orchestrator.paused` 变 `true`，恢复后 `false`。
 
 **1.1.0 对真实控制台**（服务器 `47.108.210.180` 上跑着的 QQA，经 cloudflared 隧道
 `https://gibraltar-shakira-faced-owen.trycloudflare.com`），Android 15 API 35 x86_64 模拟器实测：

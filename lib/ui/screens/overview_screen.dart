@@ -292,9 +292,10 @@ class _QuickStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     const items = <({String label, IconData icon, int tab})>[
       (label: '会话过程', icon: Icons.forum_outlined, tab: 1),
-      (label: '消息存档', icon: Icons.chat_bubble_outline_rounded, tab: 2),
-      (label: '操作', icon: Icons.bolt_outlined, tab: 3),
-      (label: '设置', icon: Icons.settings_outlined, tab: 4),
+      (label: '用量日志', icon: Icons.insights_outlined, tab: 2),
+      (label: '消息存档', icon: Icons.chat_bubble_outline_rounded, tab: 3),
+      (label: '操作', icon: Icons.bolt_outlined, tab: 4),
+      (label: '设置', icon: Icons.settings_outlined, tab: 5),
     ];
     return GlassPanel(
       radius: GlassRadius.panel,

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../core/api.dart';
 import '../core/core.dart';
 import '../core/glass_quality.dart' as gq;
+import '../core/insights.dart';
 import '../core/models.dart';
 import '../core/store.dart';
 import '../core/tokens_fmt.dart';
@@ -37,6 +38,18 @@ class AppState extends ChangeNotifier {
   List<ChatRow> chats = const [];
   String? chatsError;
   bool loadingChats = false;
+
+  /// 0.5 新增的用量统计（`range` 是 `1` / `7` / `30` 天）。
+  UsageStats usage = const UsageStats();
+  String? usageError;
+  bool loadingUsage = false;
+  String usageRange = '7';
+
+  /// 0.5 新增的运行日志。
+  List<LogEntry> logs = const [];
+  String? logsError;
+  bool loadingLogs = false;
+  String logLevel = 'info';
 
   Timer? _statusTimer;
   Timer? _listTimer;
@@ -164,6 +177,92 @@ class AppState extends ChangeNotifier {
     await refreshStatus();
   }
 
+  /// 拉用量统计。[range] 缺省沿用当前选择（1 / 7 / 30 天）。
+  Future<void> loadUsage({String? range}) async {
+    final client = api;
+    if (client == null) return;
+    if (range != null) usageRange = range;
+    final epoch = _epoch;
+    final want = usageRange;
+    loadingUsage = true;
+    usageError = null;
+    _notify();
+    try {
+      final body = await client.usageStats(want);
+      if (epoch != _epoch) return;
+      usage = UsageStats.fromJson(body);
+      usageError = null;
+    } on Object catch (error) {
+      if (epoch != _epoch) return;
+      usageError = '$error';
+    } finally {
+      if (epoch == _epoch) {
+        loadingUsage = false;
+        _notify();
+      }
+    }
+  }
+
+  /// 拉最近日志。[quiet] 为 true 时不动 loading（给轮询用，避免闪白）。
+  Future<void> loadLogs({bool quiet = false}) async {
+    final client = api;
+    if (client == null) return;
+    if (!quiet && loadingLogs) return;
+    final epoch = _epoch;
+    if (!quiet) {
+      loadingLogs = true;
+      logsError = null;
+      _notify();
+    }
+    try {
+      final body = await client.recentLogs();
+      if (epoch != _epoch) return;
+      final rows = body['logs'];
+      logs = rows is List
+          ? rows
+              .whereType<Map>()
+              .map((row) => LogEntry.fromJson(row.cast<String, Object?>()))
+              .toList()
+          : const <LogEntry>[];
+      final level = '${body['level'] ?? ''}';
+      if (level.isNotEmpty) logLevel = level;
+      logsError = null;
+    } on Object catch (error) {
+      if (epoch != _epoch) return;
+      logsError = '$error';
+    } finally {
+      if (epoch == _epoch && !quiet) {
+        loadingLogs = false;
+        _notify();
+      }
+    }
+  }
+
+  /// 改控制台日志级别；失败时把错误写进 logsError 让页面顶上红条显示。
+  Future<void> changeLogLevel(String level) async {
+    final client = api;
+    if (client == null) return;
+    final previous = logLevel;
+    logLevel = level;
+    _notify();
+    try {
+      await client.setLogLevel(level);
+      await loadLogs(quiet: true);
+    } on Object catch (error) {
+      logLevel = previous;
+      logsError = '$error';
+      _notify();
+    }
+  }
+
+  /// 让某个会话立刻重跑（`retry`）或中止（`abort`）。
+  Future<void> sessionAction(String id, String action) async {
+    final client = api;
+    if (client == null) return;
+    await client.sessionAction(id, action);
+    await refreshLists();
+  }
+
   /// Validate + persist a connection for [slot], then start polling.
   Future<void> connect(int slot, String typed, {String name = ''}) async {
     await store.connect(slot, typed, name: name);
@@ -187,6 +286,12 @@ class AppState extends ChangeNotifier {
     loadingStatus = false;
     loadingSessions = false;
     loadingChats = false;
+    usage = const UsageStats();
+    usageError = null;
+    loadingUsage = false;
+    logs = const [];
+    logsError = null;
+    loadingLogs = false;
     _heroSignature = '';
   }
 
